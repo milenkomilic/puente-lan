@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, Cookie, HTTPException, Response
 from pydantic import BaseModel, Field
 
+from app.config import CONFIG
 from app.db import connect
 
 router = APIRouter(prefix="/api")
@@ -13,11 +14,9 @@ COOKIE_NAME = "puente_token"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 # Tope de magnitud del servicio completo, no por puente (eso ya lo cubre
-# bridge.max_actors). Puente pasa a ser algo que cualquiera puede correr
-# publicado en GitHub; sin un techo, un hub queda expuesto a acumular
-# actores sin límite. 40 es deliberadamente chico para este snapshot —
-# ajustable en el futuro `data/config.json` (punto 3 del roadmap).
-MAX_ACTORS_TOTAL = 40
+# bridge.max_actors). Vive en data/config.json (punto 3 del roadmap,
+# implementado); ver app/config.py.
+MAX_ACTORS_TOTAL = CONFIG["max_actors_total"]
 
 
 class ActorIn(BaseModel):

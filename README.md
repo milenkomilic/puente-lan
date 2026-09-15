@@ -40,9 +40,16 @@ Prototipo funcional, en uso real. Las pruebas end-to-end cubren 55 comprobacione
 | Transferencia de propiedad | funcional |
 | Recolección de basura | funcional |
 | Módulo de firewall multiplataforma | funcional |
-| Identidad criptográfica e invitaciones | pendiente |
+| Alta rápida por invitación + QR | funcional |
+| Acceso por nombre en vez de IP (script + verificación) | funcional |
+| Recuperación de identidad (enlace de un solo uso) | funcional |
+| Amistades entre cuentas (solicitud/aceptar) | funcional |
+| Tope de actores del servicio (40) | funcional |
+| Identidad criptográfica por dispositivo | pendiente |
+| Configuración externalizada (`data/config.json`) | funcional |
 | Subidas reanudables (tus) | pendiente |
 | Expiración automática a 7 días | campos listos, barrido pendiente |
+| Hub instalado (bandeja del sistema, sin CMD) | en diseño |
 
 ---
 
@@ -64,10 +71,16 @@ pip install -r requirements.txt
 ### Levantar el hub
 
 ```bash
+python run.py
+```
+
+Lee host y puerto desde `data/config.json` (se crea solo, con valores por defecto, la primera vez). Equivale a:
+
+```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-`--host 0.0.0.0` **no es opcional**. El valor por defecto de casi todos los frameworks es `127.0.0.1`, que funciona perfecto en la máquina local y es completamente invisible desde cualquier otra. Es la causa número uno de "no me conecta".
+`--host 0.0.0.0` **no es opcional** en ninguno de los dos casos. El valor por defecto de casi todos los frameworks es `127.0.0.1`, que funciona perfecto en la máquina local y es completamente invisible desde cualquier otra. Es la causa número uno de "no me conecta".
 
 La base de datos y las carpetas se crean solas en el primer arranque.
 
@@ -83,13 +96,23 @@ Si no conecta, mira **Resolución de problemas** más abajo.
 
 **Crear un puente** desde el botón de la barra lateral. Quien lo crea queda como dueño.
 
-**Agregar equipos** desde el engranaje del puente. Aparecen los equipos ya registrados en el hub; se eligen de una lista.
+**Agregar un equipo nuevo, que todavía no tiene cuenta en el hub**, desde el engranaje del puente → **Invitar**. Genera un enlace de un solo uso (vence en 15 minutos) con su QR; se abre en el equipo o se escanea desde el celular, y queda dentro del puente.
+
+**Agregar a alguien que ya es tu amigo** también desde el engranaje del puente → **Agregar equipo**: aparece en una lista, sin exponer el resto de los equipos del servicio.
+
+**Hacer amigos** desde el botón **Amigos** de la barra lateral: genera un enlace de un solo uso (vence en 7 días), lo compartes por fuera de Puente, y quien lo abre ve quién invita y decide aceptar o rechazar. Una solicitud sin responder se vence sola a los 7 días.
+
+**Recuperar la sesión de un equipo** (por ejemplo tras limpiar la caché del navegador) con el botón **⟲** junto a tu nombre: genera un enlace de recuperación de un solo uso para abrir en el navegador donde perdiste el acceso.
 
 **Enviar** texto con Enter, archivos arrastrando a la ventana, pegando con `Ctrl+V`, o con el botón `+`.
 
 **Administrar** desde el mismo engranaje: expulsar, transferir propiedad, renombrar, mover a la papelera.
 
 **Mantenimiento** desde la barra lateral: uso de disco, liberar espacio, limpiar equipos sin uso y aplicar la regla de firewall.
+
+**Reset de fábrica**, si quieres volver a probar todo desde cero: `python reset_fabrica.py` (ver más abajo, en Operación).
+
+**Entrar por nombre en vez de IP**, desde el enlace "Configura un nombre fácil de recordar" en la pantalla inicial (o **Acceso por nombre** dentro de Mantenimiento): descarga un script para el sistema operativo de ese equipo (`.bat` en Windows, `.sh` en Linux/macOS), lo corres una vez ahí (pide permiso de administrador para editar el archivo `hosts` de esa máquina), y desde entonces `http://puente:8080` funciona en ese equipo igual que la IP. Hay que hacerlo una vez por cada equipo nuevo — el hub no puede editar el archivo de otra máquina por sí solo, ver ADR-15.
 
 ---
 
@@ -142,13 +165,16 @@ Bridge/
 │   │   ├── messages.py   timeline y WebSocket
 │   │   ├── files.py      subida, blobs, descarga
 │   │   ├── admin.py      panel, papelera, avisos
+│   │   ├── invites.py    alta rápida, recuperación, amistad (token único)
+│   │   ├── friends.py    amigos: listar, aceptar, rechazar, quitar
 │   │   └── firewall.py   endpoints del módulo
 │   └── static/index.html interfaz completa
-├── docs/                 diseño técnico, esquema, roadmap
+├── docs/                 diseño técnico, esquema, migraciones, roadmap
 ├── data/                 ← estado portátil (fuera de Git)
 ├── test.py               suite end-to-end
 ├── tools.py              inspección rápida de la base
-└── migrar.py             migraciones a mano
+├── migrar.py             migraciones a mano
+└── reset_fabrica.py      borra data/ y reinicia el hub desde cero
 ```
 
 ---
@@ -184,6 +210,10 @@ Lo que sí está resuelto:
 - El WebSocket verifica membresía al conectar, no solo el token.
 - El token de sesión se genera con un CSPRNG y la cookie es `HttpOnly`.
 - El contenido de los mensajes se renderiza con `textContent`, nunca concatenado en HTML.
+- **Agregar a alguien a un puente ya no expone la lista completa de actores del hub.** El panel solo ofrece amigos aceptados; para cualquier otro caso existe el enlace de invitación, que identifica exactamente a un equipo.
+- **Los enlaces de invitación, recuperación y amistad son de un solo uso, con vencimiento** (15 minutos para alta y recuperación, 7 días para amistad), y canjearlos los invalida de inmediato.
+- **Recuperar un equipo rota su token de sesión.** Si alguien más interceptó el enlace de recuperación, el equipo legítimo también pierde el acceso al canjearlo él, y lo nota en el momento, en vez de compartir la sesión en silencio.
+- **El servicio completo tiene un tope de 40 actores registrados**, para que instalarlo públicamente no signifique una base sin límite de magnitud.
 
 Límites que conviene tener presentes:
 
@@ -238,7 +268,11 @@ Lista actores con sus ids, puentes y membresías. Útil cuando necesitas un id a
 
 **Una VM no conecta.** Con adaptador en NAT el tráfico sale con la IP del anfitrión. Funciona para acceder por IP directa, pero el descubrimiento por red no va a funcionar. Cambia el adaptador a modo bridge.
 
-**Perdí la sesión de un equipo.** Borrar la cookie equivale a perder la identidad, y hoy no hay forma de recuperarla desde la interfaz. Se rescata a mano: `python tools.py` para ver el token, y en la consola del navegador `document.cookie = "puente_token=TOKEN; max-age=31536000; path=/"`.
+**Perdí la sesión de un equipo.** Ya no hace falta el truco manual: desde cualquier navegador donde sigas con sesión, hacé clic en **⟲** (junto a tu nombre) para generar un enlace de recuperación de un solo uso, y abrilo en el navegador donde la perdiste. Vence en 15 minutos.
+
+**Quiero volver a probar todo desde cero.** `python reset_fabrica.py` muestra un resumen de lo que hay antes de tocar nada; con `--force` borra `data/` (con respaldo automático) y deja el hub como recién instalado. Ver la sección **Operación**.
+
+**Quiero entrar con `http://puente:8080` en vez de la IP.** Usa "Configura un nombre fácil de recordar" desde la pantalla inicial (o **Acceso por nombre** en Mantenimiento) y descarga el script para ese equipo. Es un archivo `hosts`, así que hay que repetirlo una vez por cada equipo que quiera usar el nombre — el navegador no puede tocar el sistema de archivos de otra máquina, así que no hay forma de aplicarlo de forma remota y automática. Ver ADR-15 en el diseño técnico.
 
 ---
 
@@ -251,8 +285,25 @@ Lista actores con sus ids, puentes y membresías. Útil cuando necesitas un id a
 | Equipos por puente | 5 | límite de prueba, no estructural |
 | Días en papelera | 7 | barrido automático pendiente |
 | Retención sin pin | 7 días | campos listos, barrido pendiente |
+| Actores totales (tope del servicio) | 40 | no es el tope de 5 por puente; ver ADR-14 |
+| Vencimiento de invitación (alta/recuperación) | 15 min | de un solo uso |
+| Vencimiento de invitación de amistad | 7 días | la solicitud creada al canjearla vence en otros 7 días |
+| Nombre de host | `puente` | ver ADR-15, acceso por nombre en vez de IP |
 
-Hoy viven como constantes en el código. Moverlos a `data/config.json` es una de las tareas pendientes, y es lo que corresponde según el diseño: el estado configurable debe vivir en la carpeta portátil.
+Viven en `data/config.json` (se crea solo con estos valores en el primer arranque). Editarlo a mano y reiniciar el hub alcanza por ahora; la app de Configuración del futuro instalador es la versión sin editar JSON a mano.
+
+---
+
+## Operación
+
+### Reset de fábrica
+
+```bash
+python reset_fabrica.py              # solo muestra qué hay, no toca nada
+python reset_fabrica.py --force      # borra data/ de verdad (pide confirmación escrita)
+```
+
+Antes de borrar copia `data/` completa a `data_backup_<fecha>/` (salvo `--no-backup`), y se niega a correr si detecta el hub respondiendo en el puerto configurado. Al terminar, `data/bridge.db` queda recreada vacía con el esquema al día — no hay que volver a levantar el servidor para que se aplique.
 
 ---
 
@@ -262,27 +313,27 @@ Lo que sigue, en orden de valor y no de facilidad.
 
 ### Inmediato
 
+**Hub instalado, sin depender de CMD.** Hoy levantar el servicio significa abrir una consola y activar el entorno virtual a mano (`python run.py` ya ayuda, pero sigue siendo una consola). La idea en diseño: un instalador (PyInstaller + Inno Setup) que deje dos accesos directos — un lanzador de bandeja del sistema para prender/apagar el hub con un clic, con opción de "iniciar con Windows", y una app de Configuración que edite `data/config.json` sin tocar JSON a mano. En diseño activo.
+
 **Corte de conexión al expulsar.** Hoy el WebSocket verifica el permiso solo al abrir. Un expulsado con la pestaña abierta sigue recibiendo mensajes hasta que recargue. Arreglarlo bien significa cerrar activamente sus conexiones y verificar membresía por cada petición de rango durante una descarga en curso.
 
 **Barrido de la papelera y expiración.** Los campos existen y el diseño está definido. La precaución importante: implementarlo primero en **modo simulación**, registrando qué borraría sin borrar, hasta confiar en lo que reporta. Es el único código del sistema que destruye datos, y un bug ahí no da un error, pierde archivos.
 
-**Configuración externalizada** a `data/config.json`.
+**Ventana de información** en la interfaz, consultable en cualquier momento (no un modal de bienvenida que se cierra y no vuelve).
 
 ### Mediano plazo
 
-**Identidad criptográfica e invitaciones (ADR-07).** Es el salto cualitativo más grande. Hoy el actor es un nombre y una cookie; agregar equipos requiere que el dueño lo haga desde el panel, y perder la cookie significa perder la identidad sin recuperación.
-
-El diseño ya está decidido y separa tres cosas que hoy se confunden: la **identidad** es un par de claves que nunca sale del dispositivo; la **invitación** es un código de un solo uso, con vencimiento y limitado a un puente, y es lo único que se comparte; la **membresía** es el resultado durable de canjear una invitación. La razón de separarlas es directa: si el enlace compartible fuera la identidad, compartirlo sería filtrarla.
+**Identidad criptográfica por dispositivo (resto de ADR-07).** La parte de invitación y recuperación de ADR-07 ya está implementada (alta rápida, recuperación de identidad, amistades — ver la tabla de arriba). Lo que falta es la identidad misma: hoy el actor sigue siendo un nombre y una cookie que el servidor emite; el diseño original preveía un par de claves por dispositivo que nunca sale de la máquina. Es el salto que falta para no depender por completo de la base del hub como única fuente de identidad.
 
 **Subidas reanudables con tus.** El cliente maduro existe (Uppy, 31k estrellas; tus-js-client, 2.5k) y resuelve la parte difícil: reintentos, reanudación tras cerrar el navegador, recuperación de crash. El servidor son cuatro verbos y un contador de offset. Con eso, el límite de tamaño deja de ser necesario.
 
-**Descubrimiento por mDNS y QR** para dejar de escribir la IP. Ojo: las VMs en NAT van a necesigar igual el método manual, así que el emparejamiento por código no desaparece, se vuelve el respaldo.
+**Descubrimiento por mDNS** para dejar de escribir la IP del hub a mano (el QR para compartir un enlace ya existe, esto es sobre encontrar el hub en la red). Ojo: las VMs en NAT van a necesitar igual el método manual, así que escribir la IP no desaparece del todo, se vuelve el respaldo.
 
 **Registro de actividad por puente.** Sin un log de quién entró y qué descargó, la revocación es ciega: no hay forma de enterarse de un acceso indebido. Probablemente vale más que el botón de expulsar, porque es lo que dispara la reacción.
 
 ### Largo plazo
 
-**Instalador y arranque automático**, que es lo que cierra el ciclo completo del formateo: instalas, restauras `data/`, y el servicio está de vuelta sin tocar nada más.
+**Arranque automático con el sistema operativo**, una vez que exista el instalador (ver Inmediato): que el hub esté disponible sin ni siquiera abrirlo a mano tras reiniciar la máquina. Cierra el ciclo completo del formateo: instalas, restauras `data/`, y el servicio está de vuelta sin tocar nada más.
 
 **Cifrado extremo a extremo.** Hoy el hub ve todo el contenido. Cambiarlo implica repensar el deduplicado, porque contenido cifrado con claves distintas no deduplica.
 

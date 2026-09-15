@@ -4,12 +4,13 @@ import uuid
 from fastapi import APIRouter, Cookie, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.config import CONFIG
 from app.db import connect
 from app.routes.actors import actor_from_token
 
 router = APIRouter(prefix="/api/bridges")
 
-MAX_ACTORS = 5
+MAX_ACTORS = CONFIG["max_actors_per_bridge"]
 
 
 def require_actor(puente_token: str | None = Cookie(default=None)):

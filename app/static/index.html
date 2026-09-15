@@ -5,73 +5,171 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Puente</title>
 <style>
+  :root {
+    --bg: #131316;
+    --bg-raised: #1a1a1f;
+    --bg-elevated: #202027;
+    --bg-hover: #26262e;
+    --bg-input: #1c1c22;
+    --border: #2b2b33;
+    --border-soft: #232329;
+    --text: #ececee;
+    --text-dim: #a3a2ab;
+    --text-faint: #6f6e78;
+    --accent: #4d7ef2;
+    --accent-hover: #3f6de0;
+    --accent-soft: rgba(77,126,242,.14);
+    --danger: #ef5b52;
+    --danger-soft: rgba(239,91,82,.12);
+    --warn: #d9a441;
+    --ok: #5fbf76;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --shadow-lg: 0 24px 60px rgba(0,0,0,.45), 0 4px 16px rgba(0,0,0,.3);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { margin:0; height:100vh; display:flex; font-family: system-ui, sans-serif;
-         background:#16161a; color:#e8e6e3; font-size:14px; }
+  html, body { height: 100%; }
+  body { margin:0; display:flex; font-family: var(--font);
+         background:var(--bg); color:var(--text); font-size:14px;
+         -webkit-font-smoothing: antialiased; }
   button { font-family: inherit; font-size: 13px; }
-  #side { width:250px; border-right:1px solid #2c2c31; display:flex; flex-direction:column; }
-  #side h1 { font-size:14px; padding:15px; margin:0; border-bottom:1px solid #2c2c31;
-             display:flex; justify-content:space-between; align-items:center; }
-  #bridges { flex:1; overflow-y:auto; }
-  .bridge { padding:11px 15px; cursor:pointer; border-bottom:1px solid #212126;
-            display:flex; justify-content:space-between; align-items:center; }
-  .bridge:hover { background:#1e1e23; }
-  .bridge.active { background:#26262d; }
-  .bridge .gear { opacity:0; color:#8b8a92; padding:0 4px; }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:8px; border:2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background:#3a3a44; }
+
+  /* ── layout ──────────────────────────────────────── */
+  #app { flex:1; display:flex; }
+  #side { width:264px; flex-shrink:0; border-right:1px solid var(--border-soft);
+          display:flex; flex-direction:column; background:var(--bg-raised); }
+  #side h1 { font-size:14px; font-weight:600; padding:16px 16px 14px;
+             margin:0; display:flex; justify-content:space-between; align-items:center;
+             letter-spacing:-.01em; }
+  #side h1 .who { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #side h1 .who b { font-weight:600; }
+  #bridges { flex:1; overflow-y:auto; padding:4px 8px; }
+  .bridge { padding:9px 11px; cursor:pointer; border-radius:var(--radius-sm);
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:2px; color:var(--text-dim); transition:background .1s; }
+  .bridge span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bridge:hover { background:var(--bg-hover); color:var(--text); }
+  .bridge.active { background:var(--accent-soft); color:var(--text); }
+  .bridge .gear { opacity:0; color:var(--text-faint); padding:0 2px 0 8px; flex-shrink:0; }
   .bridge:hover .gear, .bridge.active .gear { opacity:1; }
-  .sidebtn { margin:6px 12px; padding:8px; background:#2f6fd0; color:#fff;
-             border:0; border-radius:6px; cursor:pointer; }
-  .sidebtn.ghost { background:transparent; border:1px solid #35353d; color:#a9a8b0; }
-  #main { flex:1; display:flex; flex-direction:column; position:relative; }
-  #head { padding:13px 20px; border-bottom:1px solid #2c2c31; }
-  #log { flex:1; overflow-y:auto; padding:20px; }
-  .msg { margin-bottom:13px; max-width:70%; }
+  .bridge .gear:hover { color:var(--text); }
+  #sidefoot { padding:10px; border-top:1px solid var(--border-soft);
+              display:flex; flex-direction:column; gap:4px; }
+  .sidebtn { padding:9px 12px; background:var(--accent); color:#fff; text-align:left;
+             border:0; border-radius:var(--radius-sm); cursor:pointer; font-weight:500;
+             transition:background .12s; }
+  .sidebtn:hover { background:var(--accent-hover); }
+  .sidebtn.ghost { background:transparent; color:var(--text-dim); font-weight:400; }
+  .sidebtn.ghost:hover { background:var(--bg-hover); color:var(--text); }
+
+  #main { flex:1; display:flex; flex-direction:column; position:relative; min-width:0; }
+  #head { padding:15px 22px; border-bottom:1px solid var(--border-soft); font-weight:600;
+          letter-spacing:-.01em; }
+  #head.placeholder { color:var(--text-faint); font-weight:400; }
+  #log { flex:1; overflow-y:auto; padding:22px 24px; }
+  .msg { margin-bottom:14px; max-width:68%; }
   .msg.mine { margin-left:auto; text-align:right; }
-  .meta { font-size:11px; color:#8b8a92; margin-bottom:3px; }
-  .body { background:#26262d; padding:9px 13px; border-radius:10px;
-          display:inline-block; white-space:pre-wrap; text-align:left; }
-  .msg.mine .body { background:#2f6fd0; }
+  .meta { font-size:11.5px; color:var(--text-faint); margin-bottom:4px; }
+  .body { background:var(--bg-elevated); padding:9px 14px; border-radius:var(--radius-md);
+          display:inline-block; white-space:pre-wrap; text-align:left; line-height:1.45;
+          box-shadow:var(--shadow-sm); }
+  .msg.mine .body { background:var(--accent); color:#fff; }
   .file { display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit; }
-  .file .sz { font-size:11px; color:#a9a8b0; }
-  #bar { padding:13px 20px; border-top:1px solid #2c2c31; display:flex;
-         gap:9px; align-items:center; }
-  #input { flex:1; padding:10px 14px; background:#26262d; border:1px solid #35353d;
-           border-radius:8px; color:#e8e6e3; font-size:14px; }
-  #clip { background:none; border:0; color:#8b8a92; font-size:20px; cursor:pointer; }
-  #drop { position:absolute; inset:0; background:rgba(47,111,208,.15);
-          border:2px dashed #2f6fd0; display:none; align-items:center;
-          justify-content:center; pointer-events:none; z-index:5; }
+  .file .sz { font-size:11px; color:var(--text-dim); }
+  .msg.mine .file .sz { color:rgba(255,255,255,.75); }
+
+  #bar { padding:14px 20px 20px; }
+  #composer { display:flex; gap:8px; align-items:center; background:var(--bg-input);
+              border:1px solid var(--border); border-radius:var(--radius-lg);
+              padding:6px 8px 6px 14px; transition:border-color .12s; }
+  #composer:focus-within { border-color:#3d3d48; }
+  #input { flex:1; padding:8px 0; background:transparent; border:0; outline:none;
+           color:var(--text); font-size:14px; font-family:inherit; }
+  #input::placeholder { color:var(--text-faint); }
+  #input:disabled::placeholder { color:var(--text-faint); }
+  #clip { background:none; border:0; color:var(--text-dim); font-size:19px; cursor:pointer;
+          width:32px; height:32px; border-radius:50%; flex-shrink:0; transition:background .1s, color .1s; }
+  #clip:hover { background:var(--bg-hover); color:var(--text); }
+
+  #drop { position:absolute; inset:0; background:rgba(77,126,242,.1); backdrop-filter:blur(2px);
+          border:2px dashed var(--accent); border-radius:var(--radius-lg); margin:10px;
+          display:none; align-items:center; justify-content:center; pointer-events:none;
+          z-index:5; font-weight:500; color:var(--accent); }
   #drop.on { display:flex; }
-  #prog { height:3px; background:#2f6fd0; width:0; transition:width .15s; }
-  .err { color:#e2564b; font-size:12px; padding:0 20px 6px; }
-  #gate { margin:auto; text-align:center; }
-  #modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
-           align-items:center; justify-content:center; z-index:20; }
+  #prog { height:2px; background:var(--accent); width:0; transition:width .15s; }
+  .err { color:var(--danger); font-size:12px; padding:0 22px 6px; }
+  .empty { color:var(--text-dim); font-size:13px; padding:10px 0; line-height:1.5; }
+
+  /* ── pantallas de entrada (gate) ─────────────────── */
+  #gate-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; }
+  #gate { width:100%; max-width:380px; background:var(--bg-raised); border:1px solid var(--border-soft);
+          border-radius:var(--radius-lg); padding:32px 30px; box-shadow:var(--shadow-lg);
+          text-align:center; }
+  #gate .brand { font-size:12px; color:var(--text-faint); text-transform:uppercase;
+                 letter-spacing:.08em; margin-bottom:14px; font-weight:600; }
+  #gate h2 { margin:0 0 8px; font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  #gate .sub { color:var(--text-dim); font-size:13.5px; line-height:1.5; margin-bottom:20px; }
+  #gate .txt { width:100%; margin-bottom:12px; padding:11px 14px; font-size:14.5px; }
+  #gate .actions { display:flex; flex-direction:column; gap:8px; }
+  #gate .actions.row { flex-direction:row; }
+  #gate .actions.row .mini { flex:1; }
+  #gate .mini.go, #gate .mini.danger { padding:11px 16px; font-size:14px; font-weight:500; }
+
+  /* ── modal ───────────────────────────────────────── */
+  #modal { position:fixed; inset:0; background:rgba(8,8,10,.65); backdrop-filter:blur(3px);
+           display:none; align-items:center; justify-content:center; z-index:20; padding:24px; }
   #modal.on { display:flex; }
-  #card { background:#1e1e23; border:1px solid #35353d; border-radius:12px;
-          width:480px; max-height:82vh; overflow-y:auto; padding:22px; }
-  #card h2 { margin:0 0 4px; font-size:17px; font-weight:500; }
-  #card h3 { margin:20px 0 8px; font-size:12px; color:#8b8a92;
-             text-transform:uppercase; letter-spacing:.5px; font-weight:500; }
+  #card { background:var(--bg-raised); border:1px solid var(--border-soft);
+          border-radius:var(--radius-lg); width:480px; max-height:82vh; overflow-y:auto;
+          padding:24px; box-shadow:var(--shadow-lg); }
+  #card h2 { margin:0 0 4px; font-size:17px; font-weight:600; letter-spacing:-.01em; }
+  #card h3 { margin:22px 0 8px; font-size:11.5px; color:var(--text-faint);
+             text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+  #card h3:first-of-type { margin-top:18px; }
   .row { display:flex; justify-content:space-between; align-items:center;
-         padding:8px 0; border-bottom:1px solid #2c2c31; }
+         padding:9px 0; border-bottom:1px solid var(--border-soft); gap:10px; }
   .row:last-child { border:0; }
-  .tag { font-size:11px; color:#8b8a92; margin-left:7px; }
-  .mini { background:transparent; border:1px solid #35353d; color:#a9a8b0;
-          padding:4px 9px; border-radius:5px; cursor:pointer; }
-  .mini:hover { border-color:#4a4a55; color:#e8e6e3; }
-  .mini.danger { color:#e2564b; border-color:#5a2a2a; }
-  .mini.go { background:#2f6fd0; border-color:#2f6fd0; color:#fff; }
-  select, .txt { background:#26262d; border:1px solid #35353d; color:#e8e6e3;
-                 padding:7px 9px; border-radius:6px; font-size:13px; }
-  #notices { position:fixed; top:14px; right:14px; z-index:40; width:330px; }
-  .notice { background:#2a2a32; border:1px solid #3d3d47; border-left:3px solid #d0952f;
-            padding:11px 14px; border-radius:6px; margin-bottom:8px; font-size:13px;
+  .row > span:first-child { min-width:0; overflow-wrap:anywhere; }
+  .tag { font-size:11px; color:var(--text-faint); margin-left:7px; }
+
+  .pill { font-size:12px; font-weight:500; padding:3px 10px; border-radius:999px;
+          white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+  .pill.ok { color:var(--ok); background:rgba(95,191,118,.12); }
+  .pill.bad { color:var(--danger); background:var(--danger-soft); }
+  .pill.wait { color:var(--text-faint); background:var(--bg-hover); }
+
+  /* ── controles ───────────────────────────────────── */
+  .mini { background:transparent; border:1px solid var(--border); color:var(--text-dim);
+          padding:6px 11px; border-radius:var(--radius-sm); cursor:pointer;
+          transition:border-color .12s, color .12s, background .12s; white-space:nowrap; }
+  .mini:hover { border-color:#454550; color:var(--text); background:var(--bg-hover); }
+  .mini.danger { color:var(--danger); border-color:rgba(239,91,82,.35); }
+  .mini.danger:hover { background:var(--danger-soft); border-color:var(--danger); }
+  .mini.go { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .mini.go:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
+  select, .txt { background:var(--bg-input); border:1px solid var(--border); color:var(--text);
+                 padding:8px 10px; border-radius:var(--radius-sm); font-size:13.5px;
+                 font-family:inherit; outline:none; transition:border-color .12s; }
+  select:focus, .txt:focus { border-color:#454550; }
+
+  code { background:var(--bg-elevated); padding:9px 11px; border-radius:var(--radius-sm);
+         font-size:12px; word-break:break-all; display:block; margin-top:6px; line-height:1.5;
+         border:1px solid var(--border-soft); color:var(--text-dim); }
+
+  #notices { position:fixed; top:16px; right:16px; z-index:40; width:330px; }
+  .notice { background:var(--bg-elevated); border:1px solid var(--border);
+            border-left:3px solid var(--warn); padding:12px 14px; border-radius:var(--radius-sm);
+            margin-bottom:8px; font-size:13px; box-shadow:var(--shadow-lg);
             display:flex; justify-content:space-between; gap:10px; }
-  .notice button { background:none; border:0; color:#8b8a92; cursor:pointer; font-size:15px; }
-  .empty { color:#8b8a92; font-size:13px; padding:10px 0; }
-  code { background:#26262d; padding:2px 6px; border-radius:4px; font-size:12px;
-         word-break:break-all; display:block; margin-top:6px; line-height:1.5; }
+  .notice button { background:none; border:0; color:var(--text-faint); cursor:pointer; font-size:15px; }
+  .notice button:hover { color:var(--text); }
 </style>
 </head>
 <body>
@@ -91,6 +189,18 @@ const esc = s => { const d = document.createElement("div"); d.textContent = s ??
 const human = n => n==null ? "" : n<1024 ? n+" B" : n<1048576 ? (n/1024).toFixed(1)+" KB"
                   : n<1073741824 ? (n/1048576).toFixed(1)+" MB" : (n/1073741824).toFixed(2)+" GB";
 
+// ── pantalla de entrada centrada (gate) ────────────────
+// Toda pantalla previa al inicio de sesión (nombre de equipo, invitaciones,
+// solicitudes de amistad) pasa por acá, así queda centrada y con la misma
+// tarjeta en un solo lugar en vez de repetirse en cada función.
+function renderGate(html) {
+  document.getElementById("app").innerHTML = `
+    <div id="gate-wrap"><div id="gate">
+      <div class="brand">Puente</div>
+      ${html}
+    </div></div>`;
+}
+
 // ── arranque ──────────────────────────────────────────
 async function boot() {
   try { LIMIT = (await api("/api/limits")).max_bytes; } catch {}
@@ -100,71 +210,57 @@ async function boot() {
   catch { gate(); }
 }
 
-// ── invitaciones (alta rápida + recuperación) ──────────
+// ── invitaciones (alta rápida + recuperación + amistad) ─
 async function inviteFlow(token) {
   let info;
   try { info = await api(`/api/invites/${token}`); }
   catch (e) {
-    document.getElementById("app").innerHTML = `
-      <div id="gate"><h2 style="font-weight:500">Enlace no válido</h2>
-      <div class="empty">${e.status===410 ? "Esta invitación ya se usó o venció." : "No existe."}</div></div>`;
+    renderGate(`
+      <h2>Enlace no válido</h2>
+      <div class="sub">${e.status===410 ? "Esta invitación ya se usó o venció." : "No existe."}</div>`);
     return;
   }
   try { me = await api("/api/actor"); } catch { me = null; }
 
   if (info.kind === "reclaim") {
-    document.getElementById("app").innerHTML = `
-      <div id="gate">
-        <h2 style="font-weight:500">Recuperar equipo</h2>
-        <div class="empty" style="margin-bottom:14px;max-width:320px">
-          Este enlace te devuelve el acceso al equipo que lo generó, en este navegador.</div>
-        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Recuperar acceso</button>
-      </div>`;
+    renderGate(`
+      <h2>Recuperar equipo</h2>
+      <div class="sub">Este enlace te devuelve el acceso al equipo que lo generó, en este navegador.</div>
+      <div class="actions">
+        <button class="mini go" onclick="doRedeem('${token}')">Recuperar acceso</button>
+      </div>`);
     return;
   }
 
   if (info.kind === "friend") {
     const de = esc(info.from_name || "alguien");
-    if (me) {
-      document.getElementById("app").innerHTML = `
-        <div id="gate">
-          <h2 style="font-weight:500">${de} quiere agregarte como amigo</h2>
-          <div class="empty" style="margin-bottom:14px">Vas a poder aceptar o rechazar en el siguiente paso.</div>
-          <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Continuar</button>
-        </div>`;
-    } else {
-      document.getElementById("app").innerHTML = `
-        <div id="gate">
-          <h2 style="font-weight:500">${de} quiere agregarte como amigo</h2>
-          <input id="nm" class="txt" placeholder="Torre, Notebook, VM..." style="padding:10px;font-size:15px">
-          <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px;margin-left:8px">Continuar</button>
-        </div>`;
-      const nm = document.getElementById("nm");
-      nm.focus();
-      nm.onkeydown = e => { if (e.key === "Enter") doRedeem(token); };
-    }
+    renderGate(`
+      <h2>${de} quiere agregarte como amigo</h2>
+      <div class="sub">Vas a poder aceptar o rechazar en el siguiente paso.</div>
+      ${me ? "" : `<input id="nm" class="txt" placeholder="Torre, Notebook, VM...">`}
+      <div class="actions">
+        <button class="mini go" onclick="doRedeem('${token}')">Continuar</button>
+      </div>`);
+    focusNameField(token);
     return;
   }
 
   const nombre = esc(info.bridge_name || "un puente");
-  if (me) {
-    document.getElementById("app").innerHTML = `
-      <div id="gate">
-        <h2 style="font-weight:500">Unirte a «${nombre}»</h2>
-        <div class="empty" style="margin-bottom:14px">Entrarás como <b>${esc(me.name)}</b>.</div>
-        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Unirme</button>
-      </div>`;
-  } else {
-    document.getElementById("app").innerHTML = `
-      <div id="gate">
-        <h2 style="font-weight:500">Unirte a «${nombre}»</h2>
-        <input id="nm" class="txt" placeholder="Torre, Notebook, VM..." style="padding:10px;font-size:15px">
-        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px;margin-left:8px">Unirme</button>
-      </div>`;
-    const nm = document.getElementById("nm");
-    nm.focus();
-    nm.onkeydown = e => { if (e.key === "Enter") doRedeem(token); };
-  }
+  renderGate(`
+    <h2>Unirte a «${nombre}»</h2>
+    ${me ? `<div class="sub">Entrarás como <b>${esc(me.name)}</b>.</div>`
+         : `<input id="nm" class="txt" placeholder="Torre, Notebook, VM...">`}
+    <div class="actions">
+      <button class="mini go" onclick="doRedeem('${token}')">Unirme</button>
+    </div>`);
+  focusNameField(token);
+}
+
+function focusNameField(token) {
+  const nm = document.getElementById("nm");
+  if (!nm) return;
+  nm.focus();
+  nm.onkeydown = e => { if (e.key === "Enter") doRedeem(token); };
 }
 
 async function doRedeem(token) {
@@ -177,15 +273,13 @@ async function doRedeem(token) {
     me = r.actor;
 
     if (r.kind === "friend") {
-      document.getElementById("app").innerHTML = `
-        <div id="gate">
-          <h2 style="font-weight:500">Solicitud de ${esc(r.request.from_name)}</h2>
-          <div style="margin-top:14px">
-            <button class="mini go" onclick="answerFriendGate(${r.request.id}, 'accept')" style="padding:10px 16px">Aceptar</button>
-            <button class="mini danger" onclick="answerFriendGate(${r.request.id}, 'reject')" style="padding:10px 16px;margin-left:8px">Rechazar</button>
-          </div>
-          <div class="empty" style="margin-top:10px">Si cierras esto sin elegir, la solicitud queda pendiente 7 días en «Amigos».</div>
-        </div>`;
+      renderGate(`
+        <h2>Solicitud de ${esc(r.request.from_name)}</h2>
+        <div class="sub">Si cierras esto sin elegir, la solicitud queda pendiente 7 días en «Amigos».</div>
+        <div class="actions row">
+          <button class="mini go" onclick="answerFriendGate(${r.request.id}, 'accept')">Aceptar</button>
+          <button class="mini danger" onclick="answerFriendGate(${r.request.id}, 'reject')">Rechazar</button>
+        </div>`);
       return;
     }
     render(); loadBridges(); pollNotices();
@@ -199,45 +293,104 @@ async function answerFriendGate(id, action) {
 }
 
 function gate() {
-  document.getElementById("app").innerHTML = `
-    <div id="gate">
-      <h2 style="font-weight:500">¿Qué equipo es este?</h2>
-      <input id="nm" class="txt" placeholder="Torre, Notebook, VM..." style="padding:10px;font-size:15px">
-      <button class="mini go" onclick="join()" style="padding:10px 16px;margin-left:8px">Entrar</button>
-    </div>`;
+  renderGate(`
+    <h2>¿Qué equipo es este?</h2>
+    <div class="sub">Elige un nombre para identificar este navegador.</div>
+    <input id="nm" class="txt" placeholder="Torre, Notebook, VM...">
+    <div class="actions">
+      <button class="mini go" onclick="join()">Entrar</button>
+    </div>`);
   const nm = document.getElementById("nm");
   nm.focus();
   nm.onkeydown = e => { if (e.key === "Enter") join(); };
 }
 
+// ── acceso por nombre en vez de IP ─────────────────────
+async function showHostHelp() {
+  let info;
+  try { info = await api("/api/hostentry"); }
+  catch { alert("No se pudo obtener la información del hub."); return; }
+
+  openModal(`
+    <h2>Acceder por nombre en vez de IP</h2>
+    <div class="empty" style="margin-bottom:4px">
+      Hazlo una vez en cada equipo nuevo (no hace falta en la torre, que ya se ve a sí misma).</div>
+
+    <h3>1. Agrega esta línea a tu archivo hosts</h3>
+    <code>${esc(info.line)}</code>
+    <div class="row" style="margin-top:8px"><span>Windows</span>
+      <a class="mini go" href="/api/hostentry/script?os=windows" download>Descargar .bat</a></div>
+    <div class="row"><span>Linux / macOS</span>
+      <a class="mini go" href="/api/hostentry/script?os=unix" download>Descargar .sh</a></div>
+    <div class="empty">
+      Windows: clic derecho sobre el archivo → <b>Ejecutar como administrador</b>.<br>
+      Linux/macOS: <code style="display:inline;padding:2px 6px;margin:0">sh agregar-puente.sh</code> (pedirá tu contraseña).</div>
+
+    <h3>2. Verifica</h3>
+    <div class="row"><span>Probar <code style="display:inline;padding:2px 6px;margin:0">http://${esc(info.hostname)}:${info.port}</code></span>
+      <span class="pill wait" id="hostCheckPill">— No probado</span></div>
+    <div style="margin-top:10px">
+      <button class="mini go" onclick="verifyHostEntry('${esc(info.hostname)}', ${info.port})">Comprobar</button></div>
+    <div id="hostCheck"></div>
+
+    <div style="text-align:right;margin-top:18px">
+      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+async function verifyHostEntry(hostname, port) {
+  const pill = document.getElementById("hostCheckPill");
+  const box = document.getElementById("hostCheck");
+  if (pill) { pill.className = "pill wait"; pill.textContent = "— Probando..."; }
+  box.innerHTML = "";
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(`http://${hostname}:${port}/api/limits`, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (pill) { pill.className = "pill " + (r.ok ? "ok" : "bad"); pill.textContent = r.ok ? "✓ Aprobado" : "✕ Denegado"; }
+    box.innerHTML = r.ok
+      ? `<div class="empty" style="color:var(--ok)">Ya puedes usar http://${esc(hostname)}:${port}.</div>`
+      : `<div class="empty" style="color:var(--danger)">Respondió, pero con error. Revisa el paso 1.</div>`;
+  } catch {
+    if (pill) { pill.className = "pill bad"; pill.textContent = "✕ Denegado"; }
+    box.innerHTML = `<div class="empty" style="color:var(--danger)">
+      Todavía no resuelve desde este equipo. Confirma que ejecutaste el script AQUÍ, no en la torre, y prueba de nuevo.</div>`;
+  }
+}
+
 async function join() {
   const name = document.getElementById("nm").value.trim();
   if (!name) return;
-  me = await api("/api/actor", { method:"POST", body: JSON.stringify({name}) });
-  render(); loadBridges();
+  try { me = await api("/api/actor", { method:"POST", body: JSON.stringify({name}) }); }
+  catch (e) { alert(e.detail || "No se pudo entrar"); return; }
+  render(); loadBridges(); pollNotices();
 }
 
 function render() {
-  document.getElementById("app").outerHTML = `
+  document.getElementById("app").innerHTML = `
     <div id="side">
-      <h1><span>Puente · ${esc(me.name)}</span>
-        <button class="mini" onclick="showRecover()" title="Recuperar este equipo en otro navegador" style="padding:2px 7px">⟲</button></h1>
+      <h1><span class="who">Puente · <b>${esc(me.name)}</b></span>
+        <button class="mini" onclick="showRecover()" title="Recuperar este equipo en otro navegador" style="padding:3px 7px">⟲</button></h1>
       <div id="bridges"></div>
-      <button class="sidebtn" onclick="newBridge()">Nuevo puente</button>
-      <button class="sidebtn ghost" onclick="showFriends()">Amigos</button>
-      <button class="sidebtn ghost" onclick="showTrash()">Papelera</button>
-      <button class="sidebtn ghost" onclick="showMaint()">Mantenimiento</button>
+      <div id="sidefoot">
+        <button class="sidebtn" onclick="newBridge()">+ Nuevo puente</button>
+        <button class="sidebtn ghost" onclick="showFriends()">Amigos</button>
+        <button class="sidebtn ghost" onclick="showTrash()">Papelera</button>
+        <button class="sidebtn ghost" onclick="showMaint()">Configuración</button>
+      </div>
     </div>
     <div id="main">
       <div id="drop">Suelta el archivo aquí</div>
-      <div id="head">Elige un puente</div>
+      <div id="head" class="placeholder">Elige un puente</div>
       <div id="log"></div>
       <div id="prog"></div>
       <div id="err" class="err"></div>
       <div id="bar">
-        <button id="clip" onclick="pick.click()" title="Adjuntar">+</button>
-        <input type="file" id="pick" style="display:none" onchange="pickFile(this)">
-        <input id="input" placeholder="Escribe un mensaje" disabled>
+        <div id="composer">
+          <button id="clip" onclick="pick.click()" title="Adjuntar">+</button>
+          <input type="file" id="pick" style="display:none" onchange="pickFile(this)">
+          <input id="input" placeholder="Escribe un mensaje" disabled>
+        </div>
       </div>
     </div>`;
 
@@ -266,7 +419,7 @@ async function loadBridges() {
     <div class="bridge ${b.id===current?"active":""}" onclick="openBridge('${b.id}')">
       <span>${esc(b.name)}</span>
       <span class="gear" onclick="event.stopPropagation();showPanel('${b.id}')">⚙</span>
-    </div>`).join("") : `<div class="empty" style="padding:14px">Sin puentes todavía</div>`;
+    </div>`).join("") : `<div class="empty" style="padding:10px 12px">Sin puentes todavía</div>`;
   window._bridges = list;
 }
 
@@ -280,7 +433,8 @@ async function newBridge() {
 async function openBridge(id) {
   const b = (window._bridges || []).find(x => x.id === id);
   current = id; currentName = b ? b.name : "";
-  document.getElementById("head").textContent = currentName;
+  const head = document.getElementById("head");
+  head.textContent = currentName; head.classList.remove("placeholder");
   document.getElementById("input").disabled = false;
   loadBridges();
   const msgs = await api(`/api/bridges/${id}/messages`);
@@ -390,37 +544,35 @@ async function showPanel(id) {
       <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
 }
 
+function inviteBoxHtml(url, token, footNote) {
+  return `
+    <div style="margin:8px 0">
+      <code>${esc(url)}</code>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
+        ${footNote ? `<span class="tag">${footNote}</span>` : ""}
+      </div>
+      <img src="/api/invites/${token}/qr.svg" alt="QR"
+           style="margin-top:10px;background:#fff;padding:8px;border-radius:10px;width:176px;display:block">
+    </div>`;
+}
+
 async function makeInvite(id) {
   const box = document.getElementById("inviteBox");
   try {
     const r = await api(`/api/bridges/${id}/invites`, { method: "POST" });
-    const url = `${location.origin}${r.path}`;
-    box.innerHTML = `
-      <div style="margin:8px 0">
-        <code>${esc(url)}</code>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
-          <span class="tag">vence en 15 min o al primer uso</span>
-        </div>
-        <img src="/api/invites/${r.token}/qr.svg" alt="QR"
-             style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
-      </div>`;
+    box.innerHTML = inviteBoxHtml(`${location.origin}${r.path}`, r.token, "vence en 15 min o al primer uso");
   } catch (e) { alert(e.detail || "No se pudo generar la invitación"); }
 }
 
 async function showRecover() {
   try {
     const r = await api("/api/actor/reclaim-invite", { method: "POST" });
-    const url = `${location.origin}${r.path}`;
     openModal(`
       <h2>Recuperar este equipo</h2>
-      <div class="empty" style="margin-bottom:10px">
+      <div class="empty" style="margin-bottom:4px">
         Abre este enlace en el navegador donde perdiste la sesión. Un solo uso, vence en 15 minutos.</div>
-      <code>${esc(url)}</code>
-      <div style="margin-top:10px">
-        <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button></div>
-      <img src="/api/invites/${r.token}/qr.svg" alt="QR"
-           style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
+      ${inviteBoxHtml(`${location.origin}${r.path}`, r.token)}
       <div style="text-align:right;margin-top:18px">
         <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
   } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
@@ -450,7 +602,7 @@ async function showFriends() {
 
   openModal(`
     <h2>Amigos</h2>
-    <div class="empty" style="margin-bottom:10px">Solo puedes agregar a un puente a alguien que ya es tu amigo.</div>
+    <div class="empty" style="margin-bottom:4px">Solo puedes agregar a un puente a alguien que ya es tu amigo.</div>
 
     <h3>Agregar amigo</h3>
     <div class="row"><span>Enlace de un solo uso, vence en 7 días; la solicitud espera 7 días más</span>
@@ -470,16 +622,7 @@ async function makeFriendInvite() {
   const box = document.getElementById("friendInviteBox");
   try {
     const r = await api("/api/actor/friend-invite", { method: "POST" });
-    const url = `${location.origin}${r.path}`;
-    box.innerHTML = `
-      <div style="margin:8px 0">
-        <code>${esc(url)}</code>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
-        </div>
-        <img src="/api/invites/${r.token}/qr.svg" alt="QR"
-             style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
-      </div>`;
+    box.innerHTML = inviteBoxHtml(`${location.origin}${r.path}`, r.token);
   } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
 }
 
@@ -506,7 +649,8 @@ async function dropMember(id, aid, propio) {
   try {
     await api(`/api/bridges/${id}/members/${aid}`, {method:"DELETE"});
     if (propio) { closeModal(); current = null;
-      document.getElementById("head").textContent = "Elige un puente";
+      const head = document.getElementById("head");
+      head.textContent = "Elige un puente"; head.classList.add("placeholder");
       document.getElementById("log").innerHTML = "";
       document.getElementById("input").disabled = true; }
     else showPanel(id);
@@ -537,7 +681,8 @@ async function toTrash(id, name) {
   await api(`/api/bridges/${id}`, {method:"DELETE"});
   closeModal();
   if (current === id) { current = null;
-    document.getElementById("head").textContent = "Elige un puente";
+    const head = document.getElementById("head");
+    head.textContent = "Elige un puente"; head.classList.add("placeholder");
     document.getElementById("log").innerHTML = "";
     document.getElementById("input").disabled = true; if (ws) ws.close(); }
   loadBridges();
@@ -577,7 +722,7 @@ async function purge(id, name) {
 async function showMaint() {
   const [m, f] = await Promise.all([api("/api/maintenance"), api("/api/firewall")]);
   openModal(`
-    <h2>Mantenimiento</h2>
+    <h2>Configuración</h2>
     <h3>Almacenamiento</h3>
     <div class="row"><span>Archivos guardados</span><span>${m.blobs_total} · ${human(m.bytes_total)}</span></div>
     <div class="row"><span>Basura recuperable</span><span>${m.blobs_huerfanos} · ${human(m.bytes_recuperables)}</span></div>
@@ -592,14 +737,44 @@ async function showMaint() {
 
     <h3>Firewall (${esc(f.backend || "no detectado")})</h3>
     <div class="row"><span>Regla del puerto 8080</span>
-      <span>${f.rule_exists ? "activa" : f.action_needed ? "falta" : "no hace falta"}</span></div>
+      <span class="pill ${f.rule_exists ? "ok" : f.action_needed ? "bad" : "wait"}">
+        ${f.rule_exists ? "✓ Activa" : f.action_needed ? "✕ Falta" : "— No hace falta"}</span></div>
     ${f.note ? `<div class="empty">${esc(f.note)}</div>` : ""}
     ${f.command ? `<div class="empty">Comando que se ejecutará:<code>${esc(f.command)}</code></div>` : ""}
     ${f.action_needed ? `<div style="margin-top:10px">
       <button class="mini go" onclick="applyFw()">Aplicar (pedirá permisos)</button></div>` : ""}
 
+    <h3>Acceso por nombre</h3>
+    <div class="row"><span>En este equipo</span>
+      <span class="pill wait" id="hostPill">— Comprobando...</span></div>
+    <div style="margin-top:10px">
+      <button class="mini go" onclick="showHostHelp()">Ver instrucciones</button></div>
+
     <div style="text-align:right;margin-top:18px">
       <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+  checkHostPill();
+}
+
+async function checkHostPill() {
+  const pill = document.getElementById("hostPill");
+  if (!pill) return;
+  let info;
+  try { info = await api("/api/hostentry"); } catch { return; }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2000);
+    const r = await fetch(`http://${info.hostname}:${info.port}/api/limits`, { signal: ctrl.signal });
+    clearTimeout(t);
+    const p = document.getElementById("hostPill");
+    if (!p) return;
+    p.className = "pill " + (r.ok ? "ok" : "bad");
+    p.textContent = r.ok ? "✓ Aprobado" : "✕ Denegado";
+  } catch {
+    const p = document.getElementById("hostPill");
+    if (!p) return;
+    p.className = "pill bad";
+    p.textContent = "✕ Denegado";
+  }
 }
 
 async function doClean() {

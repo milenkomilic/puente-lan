@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app import gc
+from app.config import CONFIG
 from app.db import connect
 from app.routes.bridges import require_actor
 
 router = APIRouter(prefix="/api")
-TRASH_DAYS = 7
+TRASH_DAYS = CONFIG["trash_days"]
 
 
 def now_ms() -> int:

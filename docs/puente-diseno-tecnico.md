@@ -390,7 +390,7 @@ sudo firewall-cmd --permanent --remove-port=8080/tcp && sudo firewall-cmd --relo
 
 ## 8. Configuración del hub
 
-Archivo único en la carpeta de estado.
+**Implementado (2026-09-15).** Archivo único en la carpeta de estado: `data/config.json`. Lo lee `app/config.py` una sola vez al arrancar el proceso — igual que las migraciones de la base, un cambio requiere reiniciar el hub. Si el archivo no existe, se crea con los valores por defecto en el primer arranque.
 
 | Clave | Default | Nota |
 |---|---|---|
@@ -398,7 +398,22 @@ Archivo único en la carpeta de estado.
 | `port` | 8080 | |
 | `max_file_mb` | 100 | ADR-10 |
 | `max_actors_per_bridge` | 5 | ADR-12 |
-| `retention_days` | 7 | sin efecto en v1 |
+| `max_actors_total` | 40 | ADR-14, tope de todo el servicio, no por puente |
+| `trash_days` | 7 | días en la papelera antes de purgar |
+| `retention_days` | 7 | expiración de mensajes sin pin; sin efecto hasta el barrido (punto 5) |
+| `hostname` | `puente` | ver ADR-15, acceso por nombre en vez de IP |
+
+### ADR-15 — Acceso por nombre: script por equipo, no automatización remota (2026-09-15)
+
+**El problema:** entrar a Puente por IP (`http://192.168.x.x:8080`) es incómodo, y la IP puede cambiar. **La restricción real:** una página web no puede editar el archivo `hosts` del equipo que la visita — es una restricción del navegador, la misma para cualquier sitio, no algo que Puente pueda evitar con más código. Esto es distinto del módulo de firewall (ADR-11): ahí el hub modifica su propia máquina, porque el hub y "la máquina a cambiar" son el mismo equipo. Acá "la máquina a cambiar" es cada equipo que se conecta.
+
+**Decisión:** mismo espíritu que ADR-11 (detectar, mostrar exactamente qué se va a hacer, nunca aplicar elevado en silencio), pero como hay que repetirlo por equipo en vez de una vez en el hub, se ofrece un **script descargable** (`.bat` para Windows, `.sh` para Linux/macOS, generados por `app/hostentry.py` con la IP del hub ya insertada) en vez de un botón que lo aplica a distancia. Cada equipo nuevo lo descarga y lo corre una sola vez. Un botón "Verificar" intenta alcanzar `http://<hostname>:<puerto>` desde ese mismo navegador para confirmar que quedó bien, sin necesidad de que el usuario sepa interpretar el resultado del script.
+
+**Consecuencia:** los endpoints (`GET /api/hostentry`, `GET /api/hostentry/script`) son públicos, sin cookie de sesión — un equipo nuevo los necesita antes de tener un actor, igual que `/api/limits`.
+
+**Se descartó** mDNS para este snapshot (queda en el roadmap de mediano plazo): resuelve el problema para todos los equipos a la vez sin tocar `hosts`, pero necesita una librería adicional en el servidor y, en Windows, que el equipo tenga instalado un resolutor mDNS — más peso del que amerita resolver esto ahora.
+
+`run.py`, en la raíz del proyecto, es el punto de entrada que lee estos valores y arranca uvicorn con ellos (`python run.py`), pensado para que lo use el futuro lanzador de bandeja del sistema. El comando manual `uvicorn app.main:app --host ... --port ...` sigue funcionando para desarrollo, pero con host/puerto fijos en la línea de comandos en vez de leídos de `config.json`.
 
 ---
 

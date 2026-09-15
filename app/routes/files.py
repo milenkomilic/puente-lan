@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from app.config import CONFIG
 from app.db import connect
 from app.routes.bridges import require_actor
 from app.routes.messages import hub, is_member
@@ -12,7 +13,7 @@ from app.routes.messages import hub, is_member
 router = APIRouter(prefix="/api")
 
 BLOBS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "blobs"
-MAX_FILE_MB = 100
+MAX_FILE_MB = CONFIG["max_file_mb"]
 MAX_BYTES = MAX_FILE_MB * 1024 * 1024
 CHUNK = 1024 * 1024
 
