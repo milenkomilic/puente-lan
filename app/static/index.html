@@ -94,8 +94,108 @@ const human = n => n==null ? "" : n<1024 ? n+" B" : n<1048576 ? (n/1024).toFixed
 // ── arranque ──────────────────────────────────────────
 async function boot() {
   try { LIMIT = (await api("/api/limits")).max_bytes; } catch {}
+  const m = location.pathname.match(/^\/i\/([^/]+)$/);
+  if (m) return inviteFlow(m[1]);
   try { me = await api("/api/actor"); render(); loadBridges(); pollNotices(); }
   catch { gate(); }
+}
+
+// ── invitaciones (alta rápida + recuperación) ──────────
+async function inviteFlow(token) {
+  let info;
+  try { info = await api(`/api/invites/${token}`); }
+  catch (e) {
+    document.getElementById("app").innerHTML = `
+      <div id="gate"><h2 style="font-weight:500">Enlace no válido</h2>
+      <div class="empty">${e.status===410 ? "Esta invitación ya se usó o venció." : "No existe."}</div></div>`;
+    return;
+  }
+  try { me = await api("/api/actor"); } catch { me = null; }
+
+  if (info.kind === "reclaim") {
+    document.getElementById("app").innerHTML = `
+      <div id="gate">
+        <h2 style="font-weight:500">Recuperar equipo</h2>
+        <div class="empty" style="margin-bottom:14px;max-width:320px">
+          Este enlace te devuelve el acceso al equipo que lo generó, en este navegador.</div>
+        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Recuperar acceso</button>
+      </div>`;
+    return;
+  }
+
+  if (info.kind === "friend") {
+    const de = esc(info.from_name || "alguien");
+    if (me) {
+      document.getElementById("app").innerHTML = `
+        <div id="gate">
+          <h2 style="font-weight:500">${de} quiere agregarte como amigo</h2>
+          <div class="empty" style="margin-bottom:14px">Vas a poder aceptar o rechazar en el siguiente paso.</div>
+          <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Continuar</button>
+        </div>`;
+    } else {
+      document.getElementById("app").innerHTML = `
+        <div id="gate">
+          <h2 style="font-weight:500">${de} quiere agregarte como amigo</h2>
+          <input id="nm" class="txt" placeholder="Torre, Notebook, VM..." style="padding:10px;font-size:15px">
+          <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px;margin-left:8px">Continuar</button>
+        </div>`;
+      const nm = document.getElementById("nm");
+      nm.focus();
+      nm.onkeydown = e => { if (e.key === "Enter") doRedeem(token); };
+    }
+    return;
+  }
+
+  const nombre = esc(info.bridge_name || "un puente");
+  if (me) {
+    document.getElementById("app").innerHTML = `
+      <div id="gate">
+        <h2 style="font-weight:500">Unirte a «${nombre}»</h2>
+        <div class="empty" style="margin-bottom:14px">Entrarás como <b>${esc(me.name)}</b>.</div>
+        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px">Unirme</button>
+      </div>`;
+  } else {
+    document.getElementById("app").innerHTML = `
+      <div id="gate">
+        <h2 style="font-weight:500">Unirte a «${nombre}»</h2>
+        <input id="nm" class="txt" placeholder="Torre, Notebook, VM..." style="padding:10px;font-size:15px">
+        <button class="mini go" onclick="doRedeem('${token}')" style="padding:10px 16px;margin-left:8px">Unirme</button>
+      </div>`;
+    const nm = document.getElementById("nm");
+    nm.focus();
+    nm.onkeydown = e => { if (e.key === "Enter") doRedeem(token); };
+  }
+}
+
+async function doRedeem(token) {
+  const nmEl = document.getElementById("nm");
+  try {
+    const r = await api(`/api/invites/${token}/redeem`, {
+      method: "POST", body: JSON.stringify({ name: nmEl ? nmEl.value.trim() : undefined }),
+    });
+    history.replaceState(null, "", "/");
+    me = r.actor;
+
+    if (r.kind === "friend") {
+      document.getElementById("app").innerHTML = `
+        <div id="gate">
+          <h2 style="font-weight:500">Solicitud de ${esc(r.request.from_name)}</h2>
+          <div style="margin-top:14px">
+            <button class="mini go" onclick="answerFriendGate(${r.request.id}, 'accept')" style="padding:10px 16px">Aceptar</button>
+            <button class="mini danger" onclick="answerFriendGate(${r.request.id}, 'reject')" style="padding:10px 16px;margin-left:8px">Rechazar</button>
+          </div>
+          <div class="empty" style="margin-top:10px">Si cierras esto sin elegir, la solicitud queda pendiente 7 días en «Amigos».</div>
+        </div>`;
+      return;
+    }
+    render(); loadBridges(); pollNotices();
+  } catch (e) { alert(e.detail || "No se pudo canjear la invitación"); }
+}
+
+async function answerFriendGate(id, action) {
+  try { await api(`/api/friends/${id}/${action}`, { method: "POST" }); }
+  catch (e) { alert(e.detail || "No se pudo responder"); }
+  render(); loadBridges(); pollNotices();
 }
 
 function gate() {
@@ -120,9 +220,11 @@ async function join() {
 function render() {
   document.getElementById("app").outerHTML = `
     <div id="side">
-      <h1><span>Puente · ${esc(me.name)}</span></h1>
+      <h1><span>Puente · ${esc(me.name)}</span>
+        <button class="mini" onclick="showRecover()" title="Recuperar este equipo en otro navegador" style="padding:2px 7px">⟲</button></h1>
       <div id="bridges"></div>
       <button class="sidebtn" onclick="newBridge()">Nuevo puente</button>
+      <button class="sidebtn ghost" onclick="showFriends()">Amigos</button>
       <button class="sidebtn ghost" onclick="showTrash()">Papelera</button>
       <button class="sidebtn ghost" onclick="showMaint()">Mantenimiento</button>
     </div>
@@ -266,7 +368,8 @@ async function showPanel(id) {
       </select>
       <button class="mini go" onclick="addMember('${id}')">Agregar</button>
     </div>` : yo ? `<h3>Agregar equipo</h3><div class="empty">${
-      p.members.length >= 5 ? "Tope de 5 equipos alcanzado." : "No hay equipos disponibles."}</div>` : "";
+      p.members.length >= 5 ? "Tope de 5 equipos alcanzado."
+      : 'No tienes amigos disponibles para agregar. Agrégalos primero desde <b>Amigos</b>, o usa el enlace de invitación de abajo para alguien nuevo.'}</div>` : "";
 
   openModal(`
     <h2>${esc(p.name)}</h2>
@@ -274,6 +377,10 @@ async function showPanel(id) {
     <h3>Equipos (${p.members.length}/5)</h3>${miembros}
     ${agregar}
     ${yo ? `
+      <h3>Invitar</h3>
+      <div class="row"><span>Enlace de un solo uso, vence en 15 min</span>
+        <button class="mini go" onclick="makeInvite('${id}')">Generar</button></div>
+      <div id="inviteBox"></div>
       <h3>Administración</h3>
       <div class="row"><span>Renombrar el puente</span>
         <button class="mini" onclick="doRename('${id}','${esc(p.manual_name||"")}')">Renombrar</button></div>
@@ -281,6 +388,110 @@ async function showPanel(id) {
         <button class="mini danger" onclick="toTrash('${id}','${esc(p.name)}')">Eliminar</button></div>` : ""}
     <div style="text-align:right;margin-top:18px">
       <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+async function makeInvite(id) {
+  const box = document.getElementById("inviteBox");
+  try {
+    const r = await api(`/api/bridges/${id}/invites`, { method: "POST" });
+    const url = `${location.origin}${r.path}`;
+    box.innerHTML = `
+      <div style="margin:8px 0">
+        <code>${esc(url)}</code>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
+          <span class="tag">vence en 15 min o al primer uso</span>
+        </div>
+        <img src="/api/invites/${r.token}/qr.svg" alt="QR"
+             style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
+      </div>`;
+  } catch (e) { alert(e.detail || "No se pudo generar la invitación"); }
+}
+
+async function showRecover() {
+  try {
+    const r = await api("/api/actor/reclaim-invite", { method: "POST" });
+    const url = `${location.origin}${r.path}`;
+    openModal(`
+      <h2>Recuperar este equipo</h2>
+      <div class="empty" style="margin-bottom:10px">
+        Abre este enlace en el navegador donde perdiste la sesión. Un solo uso, vence en 15 minutos.</div>
+      <code>${esc(url)}</code>
+      <div style="margin-top:10px">
+        <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button></div>
+      <img src="/api/invites/${r.token}/qr.svg" alt="QR"
+           style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
+      <div style="text-align:right;margin-top:18px">
+        <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+  } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
+}
+
+// ── amigos ────────────────────────────────────────────
+async function showFriends() {
+  const f = await api("/api/friends");
+
+  const amigos = f.friends.length ? f.friends.map(a => `
+    <div class="row"><span>${esc(a.name)}</span>
+      <button class="mini danger" onclick="unfriend('${a.id}','${esc(a.name)}')">Quitar</button></div>`
+  ).join("") : `<div class="empty">Todavía no tienes amigos agregados.</div>`;
+
+  const entrantes = f.incoming.length ? f.incoming.map(r => `
+    <div class="row"><span>${esc(r.name)}</span>
+      <span>
+        <button class="mini go" onclick="respondFriend(${r.id},'accept')">Aceptar</button>
+        <button class="mini danger" onclick="respondFriend(${r.id},'reject')">Rechazar</button>
+      </span></div>`
+  ).join("") : "";
+
+  const salientes = f.outgoing.length ? f.outgoing.map(r => `
+    <div class="row"><span>${esc(r.name)}<span class="tag">esperando respuesta</span></span>
+      <button class="mini" onclick="respondFriend(${r.id},'reject')">Cancelar</button></div>`
+  ).join("") : "";
+
+  openModal(`
+    <h2>Amigos</h2>
+    <div class="empty" style="margin-bottom:10px">Solo puedes agregar a un puente a alguien que ya es tu amigo.</div>
+
+    <h3>Agregar amigo</h3>
+    <div class="row"><span>Enlace de un solo uso, vence en 7 días; la solicitud espera 7 días más</span>
+      <button class="mini go" onclick="makeFriendInvite()">Generar</button></div>
+    <div id="friendInviteBox"></div>
+
+    ${entrantes ? `<h3>Solicitudes recibidas</h3>${entrantes}` : ""}
+    ${salientes ? `<h3>Solicitudes enviadas</h3>${salientes}` : ""}
+
+    <h3>Tus amigos (${f.friends.length})</h3>${amigos}
+
+    <div style="text-align:right;margin-top:18px">
+      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+async function makeFriendInvite() {
+  const box = document.getElementById("friendInviteBox");
+  try {
+    const r = await api("/api/actor/friend-invite", { method: "POST" });
+    const url = `${location.origin}${r.path}`;
+    box.innerHTML = `
+      <div style="margin:8px 0">
+        <code>${esc(url)}</code>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
+        </div>
+        <img src="/api/invites/${r.token}/qr.svg" alt="QR"
+             style="margin-top:10px;background:#fff;padding:8px;border-radius:8px;width:180px">
+      </div>`;
+  } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
+}
+
+async function respondFriend(id, action) {
+  try { await api(`/api/friends/${id}/${action}`, { method: "POST" }); showFriends(); }
+  catch (e) { alert(e.detail || "No se pudo responder"); }
+}
+
+async function unfriend(id, name) {
+  if (!confirm(`¿Quitar a "${name}" de tus amigos?`)) return;
+  try { await api(`/api/friends/${id}`, { method: "DELETE" }); showFriends(); }
+  catch (e) { alert(e.detail || "No se pudo quitar"); }
 }
 
 async function addMember(id) {

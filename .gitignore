@@ -1,7 +1,6 @@
-@"
 .venv/
 data/
+data_backup_*/
 __pycache__/
 *.pyc
 .vscode/
-"@ | Out-File -FilePath .gitignore -Encoding utf8

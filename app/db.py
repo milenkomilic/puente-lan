@@ -27,5 +27,13 @@ def init_db() -> None:
     if v < 2:
         mig = SCHEMA_PATH.parent / "migracion-002.sql"
         conn.executescript(mig.read_text(encoding="utf-8"))
+        v = conn.execute("PRAGMA user_version").fetchone()[0]
+    if v < 3:
+        mig = SCHEMA_PATH.parent / "migracion-003.sql"
+        conn.executescript(mig.read_text(encoding="utf-8"))
+        v = conn.execute("PRAGMA user_version").fetchone()[0]
+    if v < 4:
+        mig = SCHEMA_PATH.parent / "migracion-004.sql"
+        conn.executescript(mig.read_text(encoding="utf-8"))
     conn.commit()
     conn.close()

@@ -111,6 +111,28 @@ WebSocket para eventos y presencia. HTTP aparte para bytes.
 
 **En v1:** el actor es solo un nombre y una cookie. El campo de rol existe en los datos; la UI de gestión no.
 
+**Adelantado desde v2 (2026-09-14):** la invitación y la recuperación de identidad ya están implementadas, sin esperar a la identidad criptográfica. Una tabla `invite` (`docs/migracion-003.sql`) guarda un token de un solo uso, con vencimiento de 15 minutos, de dos tipos: `join` (limitado a un puente) y `reclaim` (limitado a un actor). Canjear un `reclaim` rota el token del actor, así que un enlace interceptado invalida también al equipo legítimo en vez de compartir la sesión con el atacante. La identidad de dispositivo con par de claves sigue diferida.
+
+### ADR-13 — Puente es un servicio público (2026-09-14): amistad explícita en vez de directorio
+
+Cambio de alcance: Puente deja de asumir "todos los actores son mis propios equipos" y pasa a ser algo que cualquiera puede correr y publicar. Eso rompió un supuesto implícito del panel de puente: el selector "agregar equipo" listaba **todos los actores del hub**, porque hasta ahora todos eran del mismo dueño. Con actores de dueños distintos, esa lista es una fuga de información — cualquiera que abra el panel de un puente ve el padrón completo de equipos del servicio.
+
+**Decisión:** una relación de amistad explícita y consentida por ambos lados, con el esquema clásico de solicitud/respuesta (`docs/migracion-004.sql`, tabla `friendship`): `pending` → `accepted`. Rechazar o cancelar borra la fila; no hay estado `rejected` que conservar. Una solicitud sin responder vence a los 7 días (se deriva por `expires_at`, se barre al leer — no es contenido del usuario, así que no aplica la cautela de modo simulación del punto 5).
+
+**Cómo se conecta:** identificar a la otra persona sigue sin usar un directorio. Se reutiliza el mecanismo de invitación (tercer `kind`: `friend`) — quien quiere agregar a alguien genera un enlace/QR de un solo uso (vence en 7 días) y lo comparte por fuera de Puente. Al abrirlo, quien lo recibe ve quién lo invita y decide: aceptar o rechazar ahí mismo, o dejarlo pendiente hasta 7 días en su panel de "Amigos".
+
+**Consecuencia en el panel de puente:** "Agregar equipo" ahora lista solo amigos aceptados que no son ya miembros. Para alguien que todavía no es amigo, sigue existiendo el enlace de invitación al puente (`kind=join`), sin pasar por la amistad.
+
+**Se descartó** el bloqueo de actores en este snapshot — "agregar/quitar amigo" alcanza para el caso de uso actual; bloquear (impedir nuevas solicitudes, expulsar de puentes activos) queda para cuando haga falta.
+
+### ADR-14 — Tope de actores del servicio completo (2026-09-14)
+
+**Decisión:** máximo 40 actores registrados por instancia del hub, chequeado en `POST /api/actor` y en cualquier alta de actor nueva vía invitación (`join`, `friend`). No es el tope de 5 por puente (ADR-12): es un techo de magnitud para todo el servicio.
+
+**Razón:** al publicarse como algo que cualquiera puede instalar, un hub sin techo puede acumular actores sin límite (SQLite crece, pero también crece la superficie: más identidades, más amistades posibles, más código nunca ejercitado a esa escala). 40 es deliberadamente chico para este snapshot — cinco puentes llenos de cinco actores distintos ya lo justifican como orden de magnitud razonable — y puede revisarse con uso real.
+
+**Consecuencia:** con el hub lleno, tanto un equipo nuevo entrando por `POST /api/actor` como uno entrando por un enlace de invitación reciben un 409 explícito. Vive como constante en código por ahora; migra a `data/config.json` junto con el resto en el punto 3 del roadmap.
+
 ### ADR-08 [v2] — Sesión con estado en servidor, membresía verificada por petición
 
 Sin tokens autocontenidos tipo JWT.
@@ -352,6 +374,17 @@ sudo firewall-cmd --permanent --remove-port=8080/tcp && sudo firewall-cmd --relo
 | GET | `/api/firewall` | estado detectado y comando propuesto |
 | POST | `/api/firewall/apply` | aplicar con elevación |
 | WS | `/ws` | mensajes nuevos y presencia |
+| POST | `/api/bridges/{id}/invites` | el dueño genera un enlace de alta (`kind=join`) |
+| POST | `/api/actor/reclaim-invite` | el actor genera su propio enlace de recuperación |
+| GET | `/api/invites/{token}` | vista previa (puente, vencimiento) antes de canjear |
+| POST | `/api/invites/{token}/redeem` | canjear: entra al puente o revincula el actor |
+| GET | `/api/invites/{token}/qr.svg` | QR del enlace, para el celular |
+| GET | `/i/{token}` | página que resuelve el enlace de invitación |
+| POST | `/api/actor/friend-invite` | genera un enlace de amistad (`kind=friend`) |
+| GET | `/api/friends` | mis amigos, solicitudes entrantes y salientes |
+| POST | `/api/friends/{id}/accept` | aceptar una solicitud entrante |
+| POST | `/api/friends/{id}/reject` | rechazar una entrante, o cancelar una saliente |
+| DELETE | `/api/friends/{actor_id}` | quitar a alguien de mis amigos |
 
 ---
 

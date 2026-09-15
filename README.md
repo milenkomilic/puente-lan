@@ -1,3 +1,6 @@
+# Iniciar servicio:
+uvicorn app.main:app --host 0.0.0.0 --port 8080
+
 # Puente
 
 Transferencia de texto y archivos entre equipos propios en red local, sin reconfigurar nada al formatear.

@@ -65,8 +65,18 @@ def panel(bridge_id: str, actor=Depends(require_actor)):
             raise HTTPException(403, "no eres miembro")
 
         dentro = {m["id"] for m in miembros}
+        # Antes listaba TODOS los actores del hub, sin importar de quién
+        # eran: con Puente abierto a cualquiera, eso exponía la lista
+        # completa de equipos del servicio a cualquier dueño de puente.
+        # Ahora solo se puede agregar a alguien con quien ya hay una
+        # amistad aceptada (ver docs/migracion-004.sql); para un equipo
+        # nuevo, sigue existiendo el enlace de invitación.
         disponibles = [dict(r) for r in conn.execute(
-            "SELECT id, name FROM actor ORDER BY name")
+            "SELECT a.id, a.name FROM friendship f"
+            " JOIN actor a ON a.id = CASE WHEN f.requester_id = ? THEN f.addressee_id"
+            "                             ELSE f.requester_id END"
+            " WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?)"
+            " ORDER BY a.name", (actor["id"], actor["id"], actor["id"]))
             if r["id"] not in dentro]
 
         uso = conn.execute(
