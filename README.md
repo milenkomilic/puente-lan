@@ -1,242 +1,217 @@
-# Iniciar servicio:
-uvicorn app.main:app --host 0.0.0.0 --port 8080
-
 # Puente
 
-Transferencia de texto y archivos entre equipos propios en red local, sin reconfigurar nada al formatear.
+Comparte texto y archivos entre los equipos de tu red local desde el navegador, sin instalar nada en los clientes y sin volver a configurar permisos cada vez que formateas.
 
-Un **hub** corre en una máquina encendida. El resto de los equipos entran por navegador a una URL local. La interacción es un chat: mensajes y archivos en un timeline compartido, organizados en puentes independientes.
+Un **hub** (FastAPI + SQLite) corre en una máquina encendida. El resto de los equipos —notebook, VM, celular— entran a una URL local y comparten en un chat organizado por *puentes*: salas independientes con sus propios miembros.
 
----
+![Chat entre dos equipos en un puente](docs/capturas/chat.png)
 
-## El problema que resuelve
+Todo el estado del servicio cabe en una carpeta: copias `data/` y el hub se mudó de máquina. La única excepción es la regla de firewall, y hay un módulo que la crea y la quita.
 
-Una carpeta compartida de Windows no es lenta ni está mal diseñada. El problema es **dónde vive su configuración**: usuarios, permisos NTFS, perfiles de red y reglas de firewall viven dentro del sistema operativo. Formateas y todo eso desaparece. Hay que rehacerlo, equipo por equipo, cada vez.
-
-Puente parte de una restricción distinta: **todo el estado cabe en una carpeta portátil**. Copias `data/` y el servicio completo se mudó de máquina. La única excepción es la regla de firewall, y para eso hay un módulo que la crea y la quita.
-
-La segunda decisión que hace posible lo anterior: **el cliente es el navegador**. Solo el hub necesita instalación. Un PC recién formateado, una VM o un teléfono entran con una URL, sin instalar nada.
-
-### Qué no es
-
-- **No es respaldo.** El contenido está pensado para caducar.
-- **No es sincronización de carpetas.** No hay espejo ni resolución de conflictos.
-- **No es acceso remoto.** El alcance es la LAN.
-- **No mueve archivos enormes.** Hay un límite configurable; para 50 GB, un disco externo siempre será mejor.
+**Qué no es:** no es respaldo (el contenido está pensado para caducar), no es sincronización de carpetas (no hay espejo ni resolución de conflictos), no es acceso remoto (el alcance es la LAN) y no mueve archivos enormes (hay un límite configurable; para 50 GB un disco externo siempre será mejor).
 
 ---
 
-## Estado actual
+## Requisitos
 
-Prototipo funcional, en uso real. Las pruebas end-to-end cubren 55 comprobaciones y corren en poco más de un segundo.
-
-| Capacidad | Estado |
-|---|---|
-| Chat en vivo entre equipos (WebSocket) | funcional |
-| Archivos con deduplicado por contenido | funcional |
-| Puentes múltiples, hasta 5 equipos | funcional |
-| Panel de administración | funcional |
-| Papelera con restauración | funcional |
-| Transferencia de propiedad | funcional |
-| Recolección de basura | funcional |
-| Módulo de firewall multiplataforma | funcional |
-| Alta rápida por invitación + QR | funcional |
-| Acceso por nombre en vez de IP (script + verificación) | funcional |
-| Recuperación de identidad (enlace de un solo uso) | funcional |
-| Amistades entre cuentas (solicitud/aceptar) | funcional |
-| Tope de actores del servicio (40) | funcional |
-| Identidad criptográfica por dispositivo | pendiente |
-| Configuración externalizada (`data/config.json`) | funcional |
-| Subidas reanudables (tus) | pendiente |
-| Expiración automática a 7 días | campos listos, barrido pendiente |
-| Hub instalado (bandeja del sistema, sin CMD) | en diseño |
-
----
+- Python 3.10 o superior.
+- Windows, Linux o macOS para el hub. Los clientes solo necesitan un navegador.
+- Todos los equipos en la misma red local.
 
 ## Instalación
 
-Requiere Python 3.10 o superior.
-
 ```bash
-git clone <url-del-repo> Bridge
+git clone https://github.com/milenkomilic/Bridge.git
 cd Bridge
 
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # Linux / macOS
+```
 
+Activa el entorno virtual:
+
+```powershell
+.venv\Scripts\activate
+```
+
+```bash
+source .venv/bin/activate
+```
+
+E instala las dependencias:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Levantar el hub
+## Levantar el hub
 
 ```bash
 python run.py
 ```
 
-Lee host y puerto desde `data/config.json` (se crea solo, con valores por defecto, la primera vez). Equivale a:
+Lee el host y el puerto desde `data/config.json`, que se crea solo con los valores por defecto en el primer arranque, igual que la base de datos y las carpetas. Cuando arranque vas a ver la URL en la consola; déjala abierta mientras uses el servicio.
+
+Para desarrollo también sirve el comando equivalente, con host y puerto fijos en vez de leídos de la configuración:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-`--host 0.0.0.0` **no es opcional** en ninguno de los dos casos. El valor por defecto de casi todos los frameworks es `127.0.0.1`, que funciona perfecto en la máquina local y es completamente invisible desde cualquier otra. Es la causa número uno de "no me conecta".
+`--host 0.0.0.0` **no es opcional**. El valor por defecto de casi todos los frameworks es `127.0.0.1`, que funciona perfecto en la máquina local y es completamente invisible desde cualquier otra: es la causa número uno de "no me conecta".
 
-La base de datos y las carpetas se crean solas en el primer arranque.
+## Entrar desde otro equipo
 
-### Entrar desde otro equipo
+Averigua la IP del hub (`ipconfig` en Windows, `ip addr` en Linux) y abre `http://IP-DEL-HUB:8080` desde el navegador de cualquier equipo de la red. La primera vez te pide un nombre para identificarlo.
 
-Averigua la IP del hub (`ipconfig` en Windows, `ip addr` en Linux) y abre `http://IP-DEL-HUB:8080` desde cualquier navegador de la red. La primera vez pide un nombre de equipo.
+Si no conecta, mira [Resolución de problemas](#resolución-de-problemas).
 
-Si no conecta, mira **Resolución de problemas** más abajo.
+### Entrar por nombre en vez de IP
+
+Para escribir `http://puente:8080` en lugar de la IP, entra a **Configuración → Acceso por nombre** y descarga el script del sistema operativo de ese equipo: `.bat` en Windows (clic derecho → Ejecutar como administrador) o `.sh` en Linux y macOS (`sh agregar-puente.sh`, pide tu contraseña). El botón **Comprobar** te dice si quedó funcionando.
+
+Hay que hacerlo **una vez en cada equipo** que quiera usar el nombre. Un sitio web no puede editar el archivo `hosts` de la máquina que lo visita, así que no existe forma de aplicarlo de forma remota; el detalle está en el ADR-15 del [diseño técnico](docs/puente-diseno-tecnico.md).
+
+> Si entras por IP, conviene configurar el nombre **antes** de crear el equipo. Para el navegador, `192.168.0.7` y `puente` son orígenes distintos: si lo haces después, vas a tener que crear el equipo de nuevo.
 
 ---
 
 ## Uso
 
-**Crear un puente** desde el botón de la barra lateral. Quien lo crea queda como dueño.
+**Crear un puente** con el botón de la barra lateral. Quien lo crea queda como dueño.
 
-**Agregar un equipo nuevo, que todavía no tiene cuenta en el hub**, desde el engranaje del puente → **Invitar**. Genera un enlace de un solo uso (vence en 15 minutos) con su QR; se abre en el equipo o se escanea desde el celular, y queda dentro del puente.
+**Invitar a alguien que todavía no tiene cuenta**: engranaje del puente → **Invitar a alguien nuevo**. Genera un enlace de un solo uso con su QR, que vence en 15 minutos; se abre en el equipo nuevo o se escanea desde el celular, y queda dentro del puente.
 
-**Agregar a alguien que ya es tu amigo** también desde el engranaje del puente → **Agregar equipo**: aparece en una lista, sin exponer el resto de los equipos del servicio.
+**Agregar a un amigo**: engranaje del puente → **Agregar equipo**. Solo aparecen tus amigos aceptados, así que agregar a alguien nunca expone el resto de los equipos del servicio.
 
-**Hacer amigos** desde el botón **Amigos** de la barra lateral: genera un enlace de un solo uso (vence en 7 días), lo compartes por fuera de Puente, y quien lo abre ve quién invita y decide aceptar o rechazar. Una solicitud sin responder se vence sola a los 7 días.
+**Hacer amigos**: botón **Amigos** de la barra lateral. Genera un enlace de un solo uso que vence en 7 días; lo compartes por fuera de Puente y quien lo abre ve quién invita y decide aceptar o rechazar. Una solicitud sin responder se vence sola a los 7 días.
 
-**Recuperar la sesión de un equipo** (por ejemplo tras limpiar la caché del navegador) con el botón **⟲** junto a tu nombre: genera un enlace de recuperación de un solo uso para abrir en el navegador donde perdiste el acceso.
+**Enviar**: texto con Enter, archivos arrastrándolos a la ventana, pegando con `Ctrl+V` o con el botón del clip.
 
-**Enviar** texto con Enter, archivos arrastrando a la ventana, pegando con `Ctrl+V`, o con el botón `+`.
+**Administrar el puente**: desde el mismo engranaje, expulsar, transferir la propiedad, renombrar o mover a la papelera (recuperable 7 días).
 
-**Administrar** desde el mismo engranaje: expulsar, transferir propiedad, renombrar, mover a la papelera.
+**Recuperar la sesión de un equipo** —por ejemplo tras limpiar la caché del navegador— con el botón **⟲** junto a tu nombre, abajo en la barra lateral. Genera un enlace de un solo uso para abrir en el navegador donde perdiste el acceso; al canjearlo, la sesión anterior deja de valer.
 
-**Mantenimiento** desde la barra lateral: uso de disco, liberar espacio, limpiar equipos sin uso y aplicar la regla de firewall.
+**Configuración**: uso de disco, liberar espacio, equipos sin uso, regla de firewall, acceso por nombre y tema claro/oscuro, todo en la misma ventana.
 
-**Reset de fábrica**, si quieres volver a probar todo desde cero: `python reset_fabrica.py` (ver más abajo, en Operación).
-
-**Entrar por nombre en vez de IP**, desde el enlace "Configura un nombre fácil de recordar" en la pantalla inicial (o **Acceso por nombre** dentro de Mantenimiento): descarga un script para el sistema operativo de ese equipo (`.bat` en Windows, `.sh` en Linux/macOS), lo corres una vez ahí (pide permiso de administrador para editar el archivo `hosts` de esa máquina), y desde entonces `http://puente:8080` funciona en ese equipo igual que la IP. Hay que hacerlo una vez por cada equipo nuevo — el hub no puede editar el archivo de otra máquina por sí solo, ver ADR-15.
+![Ventana de configuración](docs/capturas/configuracion.png)
 
 ---
 
-## Arquitectura
+## Configuración
 
-```
-┌──────────────── HUB ────────────────────┐
-│                                          │
-│  HTTP  ──┬── /api    puentes, mensajes   │
-│          ├── /upload subida directa      │
-│          └── /blob   descarga con Range  │
-│                                          │
-│  WS    ──── mensajes en vivo             │
-│                                          │
-│  Estado ─┬── data/bridge.db   (SQLite)   │
-│          └── data/blobs/      (por hash) │
-└──────────────────────────────────────────┘
-     ▲              ▲              ▲
-  Navegador      Notebook         VM
-```
+Vive en `data/config.json`, que se crea solo con estos valores en el primer arranque. Se lee una sola vez al arrancar: **para que un cambio surta efecto hay que reiniciar el hub**.
 
-### Modelo de datos
+| Clave | Descripción | Por defecto |
+|---|---|---|
+| `host` | Interfaz donde escucha el hub. `0.0.0.0` significa "todas"; no lo cambies a `127.0.0.1` o dejará de verse desde la red. | `"0.0.0.0"` |
+| `port` | Puerto del hub. | `8080` |
+| `max_file_mb` | Tamaño máximo por archivo, validado en el cliente y en el servidor. | `100` |
+| `max_actors_per_bridge` | Equipos que caben en un puente. | `5` |
+| `max_actors_total` | Tope de equipos registrados en todo el servicio. Distinto del anterior: puede haber varios puentes de 5. | `40` |
+| `trash_days` | Días que un puente eliminado se puede restaurar desde la papelera. | `7` |
+| `retention_days` | Días que vive un mensaje sin pin. Los campos existen; el barrido automático todavía no. | `7` |
+| `hostname` | Nombre amigable para el acceso por nombre. | `"puente"` |
 
-```
-Actor    →  equipo identificado (nombre + cookie)
-   ↓
-Puente   →  hasta 5 actores, chat propio, dueño
-   ↓
-Mensaje  →  referencia; lleva actor, pin y vencimiento
-   ↓
-Blob     →  contenido único, global, deduplicado
-```
+Los vencimientos de los enlaces (15 minutos para invitación y recuperación, 7 días para amistad) están fijos en el código, no en este archivo.
 
-Esa separación entre **mensaje** y **blob** es la pieza central del diseño. El mensaje es una referencia que vive dentro de un puente y tiene sus propios permisos y vencimiento. El blob es el contenido físico, es global y se comparte entre puentes.
+---
 
-De ahí salen tres propiedades sin código extra: enviar el mismo archivo dos veces ocupa espacio una sola vez; el hash verifica integridad; y un blob nunca se borra mientras exista un mensaje vivo que lo apunte, aunque esté en otro puente.
+## Resolución de problemas
+
+**Conecto desde el hub pero no desde otro equipo.** Casi siempre es el binding: verifica que `host` sea `0.0.0.0` y no `127.0.0.1`.
+
+**En Windows conecta desde el hub pero no desde la red.** Son dos problemas distintos que se confunden:
+
+1. *Falta la regla de firewall.* La ventana de Configuración la aplica, o a mano:
+
+   ```
+   netsh advfirewall firewall add rule name="Puente" dir=in action=allow protocol=TCP localport=8080 profile=private
+   ```
+
+2. *La red está clasificada como Pública.* Windows bloquea la conexión aunque la regla exista. Revísalo y cámbialo a `Private`:
+
+   ```powershell
+   Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory
+   ```
+
+**En Linux** lo más probable es que no haya nada que hacer: en Ubuntu de escritorio `ufw` viene inactivo y el puerto ya está abierto. Compruébalo con `sudo ufw status`; si dice `inactive`, terminaste. No actives el firewall solo para abrirle un hueco: quedarías con una protección que antes no tenías y que nadie pidió.
+
+**Una VM no conecta.** Con el adaptador en NAT el tráfico sale con la IP del anfitrión. Cámbialo a modo puente (*bridged*).
+
+**Perdí la sesión de un equipo.** Desde cualquier navegador donde sigas con sesión, usa el botón **⟲** junto a tu nombre para generar un enlace de recuperación y ábrelo donde la perdiste. Vence en 15 minutos.
+
+**Quiero volver a probar todo desde cero.** `python reset_fabrica.py` (ver [Desarrollo](#reset-de-fábrica)).
+
+---
+
+## Seguridad
+
+Sé consciente de dónde está parado el proyecto: **no hay HTTPS, así que el token de sesión viaja en claro**. Es aceptable en una red propia; no lo es en una ajena.
+
+Lo que sí está resuelto:
+
+- Un actor solo ve los puentes de los que es miembro, y el WebSocket verifica la membresía al conectar, no solo el token.
+- Conocer el hash de un archivo no basta para descargarlo: hay que ser miembro de algún puente donde ese blob aparezca.
+- El token se genera con un CSPRNG y la cookie es `HttpOnly`. El contenido de los mensajes se renderiza con `textContent`, nunca concatenado en HTML.
+- Los enlaces de invitación, recuperación y amistad son de un solo uso y con vencimiento; canjearlos los invalida de inmediato. Recuperar un equipo **rota su token de sesión**, así que si alguien interceptó el enlace el equipo legítimo lo nota en el momento en vez de compartir la sesión en silencio.
+
+Límites conocidos y aceptados:
+
+- **Quien controla el hub tiene poder absoluto**: tiene el disco y puede leer los blobs sin pasar por la aplicación. El rol de dueño es una herramienta de gestión, no una barrera frente al dueño del hardware.
+- **Revocar detiene el acceso futuro, no el pasado.** Lo ya descargado no se recupera.
+- **El WebSocket comprueba el permiso solo al abrir.** Un expulsado con la pestaña abierta sigue recibiendo hasta que recargue.
+
+El modelo completo está en el [diseño técnico](docs/puente-diseno-tecnico.md).
+
+---
+
+## Desarrollo
 
 ### Estructura
 
 ```
 Bridge/
 ├── app/
-│   ├── main.py           arranque, routers, estáticos
-│   ├── db.py             conexión SQLite, PRAGMAs, migraciones
-│   ├── gc.py             recolección de blobs huérfanos
-│   ├── firewall.py       detección y aplicación multiplataforma
-│   ├── routes/
-│   │   ├── actors.py     identidad y sesión
-│   │   ├── bridges.py    creación, listado, membresía
-│   │   ├── messages.py   timeline y WebSocket
-│   │   ├── files.py      subida, blobs, descarga
-│   │   ├── admin.py      panel, papelera, avisos
-│   │   ├── invites.py    alta rápida, recuperación, amistad (token único)
-│   │   ├── friends.py    amigos: listar, aceptar, rechazar, quitar
-│   │   └── firewall.py   endpoints del módulo
-│   └── static/index.html interfaz completa
-├── docs/                 diseño técnico, esquema, migraciones, roadmap
-├── data/                 ← estado portátil (fuera de Git)
-├── test.py               suite end-to-end
-├── tools.py              inspección rápida de la base
-├── migrar.py             migraciones a mano
-└── reset_fabrica.py      borra data/ y reinicia el hub desde cero
+│   ├── main.py            arranque, routers, estáticos, CORS
+│   ├── config.py          lee y crea data/config.json
+│   ├── db.py              conexión SQLite, PRAGMAs, migraciones
+│   ├── hostentry.py       acceso por nombre (ADR-15)
+│   ├── firewall.py        detección y aplicación multiplataforma
+│   ├── gc.py              recolección de blobs huérfanos
+│   ├── routes/            un módulo por área de la API
+│   └── static/index.html  interfaz completa: vanilla JS, sin build step
+├── docs/                  diseño técnico, esquema, migraciones, roadmap
+├── data/                  estado portátil, generado en runtime (fuera de Git)
+├── run.py                 punto de entrada
+├── test.py                suite end-to-end
+├── tools.py               inspección rápida de la base
+└── reset_fabrica.py       borra data/ con varios seguros
 ```
 
----
+El modelo de datos es la pieza central del diseño:
 
-## Decisiones de diseño
+```
+Actor    →  equipo identificado (nombre + cookie de sesión)
+   ↓
+Puente   →  hasta 5 actores, chat propio, un dueño
+   ↓
+Mensaje  →  referencia; vive dentro de un puente, con su pin y vencimiento
+   ↓
+Blob     →  contenido físico, global, direccionado por SHA-256, deduplicado
+```
 
-Las decisiones están registradas como ADR en `docs/puente-diseno-tecnico.md`, con su razón y la consecuencia aceptada. Las más importantes:
+Separar el **mensaje** (referencia, con sus permisos) del **blob** (contenido, compartido entre puentes) da tres propiedades sin código extra: enviar el mismo archivo dos veces ocupa espacio una sola vez, el hash verifica integridad, y un blob nunca se borra mientras exista un mensaje vivo que lo apunte aunque esté en otro puente.
 
-**Hub central, no malla P2P.** Elimina reconciliación, conflictos y vector clocks. Y habilita revocación inmediata, que es prácticamente imposible de garantizar en una malla porque no hay nadie que pueda decir "no" de forma autoritativa. El costo aceptado: si el hub está apagado, no hay puente.
-
-**Log append-only.** El contenido son eventos que se agregan, nunca se editan. No existen conflictos si nada se modifica, lo que elimina la clase de bugs más cara del proyecto.
-
-**Blobs direccionados por contenido, desde el primer archivo.** Migrar después desde un almacén por nombre obliga a reescribir todo el disco.
-
-**Sin contador de referencias almacenado.** Un contador se desincroniza ante cualquier borrado mal manejado, y el síntoma es pérdida silenciosa de datos. Se deriva por consulta, que con índice es igual de rápido y no puede mentir.
-
-**El nombre del archivo vive en el mensaje, no en el blob.** El mismo contenido puede enviarse como `informe.pdf` y como `informe_v2.pdf`. Ponerlo junto al contenido rompe el deduplicado o pierde un nombre.
-
-**Límite de tamaño en vez de subida reanudable.** Recorta la parte más difícil del proyecto sin perder el caso de uso principal. Se implementará el protocolo tus cuando el límite estorbe de verdad.
-
-**El dueño no puede salirse de su propio puente.** Debe transferir o eliminar. Sin esa regla se generan puentes sin administrador que nadie puede arreglar.
-
----
-
-## Modelo de seguridad
-
-**Sé honesto sobre dónde está parado el proyecto.** En esta versión, quien alcanza la URL entra. No hay control de acceso entre equipos de la red. Es aceptable en una LAN doméstica; no lo es en una red compartida.
-
-Lo que sí está resuelto:
-
-- Un actor solo ve los puentes de los que es miembro.
-- Conocer el hash de un archivo **no** basta para descargarlo: hay que ser miembro de algún puente donde ese blob aparezca.
-- El WebSocket verifica membresía al conectar, no solo el token.
-- El token de sesión se genera con un CSPRNG y la cookie es `HttpOnly`.
-- El contenido de los mensajes se renderiza con `textContent`, nunca concatenado en HTML.
-- **Agregar a alguien a un puente ya no expone la lista completa de actores del hub.** El panel solo ofrece amigos aceptados; para cualquier otro caso existe el enlace de invitación, que identifica exactamente a un equipo.
-- **Los enlaces de invitación, recuperación y amistad son de un solo uso, con vencimiento** (15 minutos para alta y recuperación, 7 días para amistad), y canjearlos los invalida de inmediato.
-- **Recuperar un equipo rota su token de sesión.** Si alguien más interceptó el enlace de recuperación, el equipo legítimo también pierde el acceso al canjearlo él, y lo nota en el momento, en vez de compartir la sesión en silencio.
-- **El servicio completo tiene un tope de 40 actores registrados**, para que instalarlo públicamente no signifique una base sin límite de magnitud.
-
-Límites que conviene tener presentes:
-
-- **El token viaja en claro.** No hay HTTPS. En una red propia es aceptable; en una ajena no.
-- **Quien controla el hub tiene poder absoluto**, porque tiene el disco y puede leer los blobs sin pasar por la aplicación. El rol de dueño es una herramienta de gestión, no una barrera frente al dueño del hardware.
-- **Revocar detiene el acceso futuro, no el pasado.** Lo ya descargado no se recupera, y ninguna arquitectura cambia eso.
-- **El WebSocket comprueba el permiso solo al abrir.** Un expulsado con la pestaña abierta sigue recibiendo hasta que recargue.
-
----
-
-## Pruebas
+### Pruebas
 
 ```bash
 pip install requests
-# con el servidor corriendo en otra consola:
 python test.py
 ```
 
-55 comprobaciones en poco más de un segundo, contra el servidor real. Crea sus datos con prefijo `_test_` y limpia al terminar, así que no toca lo tuyo.
+Con el servidor corriendo en otra consola. Son 55 comprobaciones contra el servidor real, en poco más de un segundo: aislamiento entre actores, tope de equipos por puente, paginación por cursor, deduplicado, que un no miembro no descargue aunque conozca el hash, papelera con restauración, transferencia, expulsión con aviso, y que el purgado libere los blobs en disco. Crea sus datos con prefijo `_test_` y limpia al terminar, así que no toca los tuyos.
 
-Cubre aislamiento entre actores, el tope de 5 equipos, paginación por cursor, deduplicado, que un no miembro no descargue aunque conozca el hash, papelera con restauración, transferencia, expulsión con aviso, y que el purgado libere los blobs en disco.
-
-**Correrlo antes de cada commit.** Es la única forma barata de saber que un cambio no rompió algo que ya funcionaba.
+Córrela antes de cada commit. Es la forma barata de saber que un cambio no rompió algo que ya funcionaba.
 
 ### Inspeccionar la base
 
@@ -246,112 +221,37 @@ python tools.py
 
 Lista actores con sus ids, puentes y membresías. Útil cuando necesitas un id a mano.
 
----
-
-## Resolución de problemas
-
-**Conecto desde el hub pero no desde otro equipo.** Casi siempre es el binding. Verifica que levantaste con `--host 0.0.0.0`.
-
-**En Windows conecta desde el hub pero no desde la red.** Dos problemas distintos que se confunden:
-
-1. *Falta la regla de firewall.* El módulo de mantenimiento la aplica, o a mano:
-   ```
-   netsh advfirewall firewall add rule name="Puente" dir=in action=allow protocol=TCP localport=8080 profile=private
-   ```
-2. *La red está clasificada como Pública.* Windows bloquea la conexión aunque la regla exista. Revísalo con:
-   ```powershell
-   Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, NetworkCategory
-   ```
-   Y cámbialo a `Private` desde Configuración o con `Set-NetConnectionProfile`.
-
-**En Linux.** Lo más probable es que no haya nada que hacer: en Ubuntu de escritorio `ufw` viene inactivo y el puerto ya está abierto. Compruébalo con `sudo ufw status`. Si dice `inactive`, terminaste. **No actives el firewall solo para abrirle un hueco**: quedarías con una protección que no tenías y que nadie pidió.
-
-**Una VM no conecta.** Con adaptador en NAT el tráfico sale con la IP del anfitrión. Funciona para acceder por IP directa, pero el descubrimiento por red no va a funcionar. Cambia el adaptador a modo bridge.
-
-**Perdí la sesión de un equipo.** Ya no hace falta el truco manual: desde cualquier navegador donde sigas con sesión, hacé clic en **⟲** (junto a tu nombre) para generar un enlace de recuperación de un solo uso, y abrilo en el navegador donde la perdiste. Vence en 15 minutos.
-
-**Quiero volver a probar todo desde cero.** `python reset_fabrica.py` muestra un resumen de lo que hay antes de tocar nada; con `--force` borra `data/` (con respaldo automático) y deja el hub como recién instalado. Ver la sección **Operación**.
-
-**Quiero entrar con `http://puente:8080` en vez de la IP.** Usa "Configura un nombre fácil de recordar" desde la pantalla inicial (o **Acceso por nombre** en Mantenimiento) y descarga el script para ese equipo. Es un archivo `hosts`, así que hay que repetirlo una vez por cada equipo que quiera usar el nombre — el navegador no puede tocar el sistema de archivos de otra máquina, así que no hay forma de aplicarlo de forma remota y automática. Ver ADR-15 en el diseño técnico.
-
----
-
-## Configuración
-
-| Clave | Valor actual | Nota |
-|---|---|---|
-| Puerto | 8080 | |
-| Tamaño máximo de archivo | 100 MB | validado en cliente y servidor |
-| Equipos por puente | 5 | límite de prueba, no estructural |
-| Días en papelera | 7 | barrido automático pendiente |
-| Retención sin pin | 7 días | campos listos, barrido pendiente |
-| Actores totales (tope del servicio) | 40 | no es el tope de 5 por puente; ver ADR-14 |
-| Vencimiento de invitación (alta/recuperación) | 15 min | de un solo uso |
-| Vencimiento de invitación de amistad | 7 días | la solicitud creada al canjearla vence en otros 7 días |
-| Nombre de host | `puente` | ver ADR-15, acceso por nombre en vez de IP |
-
-Viven en `data/config.json` (se crea solo con estos valores en el primer arranque). Editarlo a mano y reiniciar el hub alcanza por ahora; la app de Configuración del futuro instalador es la versión sin editar JSON a mano.
-
----
-
-## Operación
-
 ### Reset de fábrica
 
 ```bash
-python reset_fabrica.py              # solo muestra qué hay, no toca nada
-python reset_fabrica.py --force      # borra data/ de verdad (pide confirmación escrita)
+python reset_fabrica.py            # solo muestra qué hay, no toca nada
+python reset_fabrica.py --force    # borra data/ de verdad
 ```
 
-Antes de borrar copia `data/` completa a `data_backup_<fecha>/` (salvo `--no-backup`), y se niega a correr si detecta el hub respondiendo en el puerto configurado. Al terminar, `data/bridge.db` queda recreada vacía con el esquema al día — no hay que volver a levantar el servidor para que se aplique.
+Por defecto es una simulación. Con `--force` pide escribir una frase de confirmación, copia `data/` completa a `data_backup_<fecha>/` (salvo `--no-backup`) y se niega a correr si detecta el hub respondiendo en el puerto configurado. Al terminar deja `data/bridge.db` recreada con el esquema al día, sin reiniciar el servidor.
+
+### Cambios de esquema
+
+Las migraciones son secuenciales y se aplican solas al arrancar, gateadas por `PRAGMA user_version`. Para agregar una: crea `docs/migracion-00N.sql` y añade el `if v < N` correspondiente en `db.py`. No edites tablas a mano.
+
+### Nota de mantenimiento
+
+Cuando un cambio contradiga una decisión registrada, **edita el ADR** en `docs/puente-diseno-tecnico.md` en vez de dejar que el código y el documento se separen en silencio. Un diseño desactualizado es peor que no tener ninguno: te hace confiar en algo falso.
 
 ---
 
-## Hacia dónde va
+## Estado y hoja de ruta
 
-Lo que sigue, en orden de valor y no de facilidad.
+Prototipo funcional, en uso real. Funciona hoy: chat en vivo, archivos con deduplicado, puentes múltiples, papelera, transferencia de propiedad, invitaciones con QR, recuperación de identidad, amistades, acceso por nombre, firewall y panel de administración.
 
-### Inmediato
+Lo que sigue, en orden de valor:
 
-**Hub instalado, sin depender de CMD.** Hoy levantar el servicio significa abrir una consola y activar el entorno virtual a mano (`python run.py` ya ayuda, pero sigue siendo una consola). La idea en diseño: un instalador (PyInstaller + Inno Setup) que deje dos accesos directos — un lanzador de bandeja del sistema para prender/apagar el hub con un clic, con opción de "iniciar con Windows", y una app de Configuración que edite `data/config.json` sin tocar JSON a mano. En diseño activo.
+- **Hub instalado** (PyInstaller + Inno Setup): un lanzador de bandeja para prender y apagar el hub con un clic y un acceso directo que abre la URL, sin depender de una consola. En diseño.
+- **Corte de conexión al expulsar**: hoy un expulsado con la pestaña abierta sigue recibiendo hasta que recargue.
+- **Barrido de papelera y expiración automática**: los campos ya existen. Se implementa primero en modo simulación — es el único código que destruye datos, y un bug ahí no da un error, pierde archivos.
+- Más adelante: identidad criptográfica por dispositivo, subidas reanudables con `tus`, descubrimiento por mDNS y registro de actividad por puente.
 
-**Corte de conexión al expulsar.** Hoy el WebSocket verifica el permiso solo al abrir. Un expulsado con la pestaña abierta sigue recibiendo mensajes hasta que recargue. Arreglarlo bien significa cerrar activamente sus conexiones y verificar membresía por cada petición de rango durante una descarga en curso.
-
-**Barrido de la papelera y expiración.** Los campos existen y el diseño está definido. La precaución importante: implementarlo primero en **modo simulación**, registrando qué borraría sin borrar, hasta confiar en lo que reporta. Es el único código del sistema que destruye datos, y un bug ahí no da un error, pierde archivos.
-
-**Ventana de información** en la interfaz, consultable en cualquier momento (no un modal de bienvenida que se cierra y no vuelve).
-
-### Mediano plazo
-
-**Identidad criptográfica por dispositivo (resto de ADR-07).** La parte de invitación y recuperación de ADR-07 ya está implementada (alta rápida, recuperación de identidad, amistades — ver la tabla de arriba). Lo que falta es la identidad misma: hoy el actor sigue siendo un nombre y una cookie que el servidor emite; el diseño original preveía un par de claves por dispositivo que nunca sale de la máquina. Es el salto que falta para no depender por completo de la base del hub como única fuente de identidad.
-
-**Subidas reanudables con tus.** El cliente maduro existe (Uppy, 31k estrellas; tus-js-client, 2.5k) y resuelve la parte difícil: reintentos, reanudación tras cerrar el navegador, recuperación de crash. El servidor son cuatro verbos y un contador de offset. Con eso, el límite de tamaño deja de ser necesario.
-
-**Descubrimiento por mDNS** para dejar de escribir la IP del hub a mano (el QR para compartir un enlace ya existe, esto es sobre encontrar el hub en la red). Ojo: las VMs en NAT van a necesitar igual el método manual, así que escribir la IP no desaparece del todo, se vuelve el respaldo.
-
-**Registro de actividad por puente.** Sin un log de quién entró y qué descargó, la revocación es ciega: no hay forma de enterarse de un acceso indebido. Probablemente vale más que el botón de expulsar, porque es lo que dispara la reacción.
-
-### Largo plazo
-
-**Arranque automático con el sistema operativo**, una vez que exista el instalador (ver Inmediato): que el hub esté disponible sin ni siquiera abrirlo a mano tras reiniciar la máquina. Cierra el ciclo completo del formateo: instalas, restauras `data/`, y el servicio está de vuelta sin tocar nada más.
-
-**Cifrado extremo a extremo.** Hoy el hub ve todo el contenido. Cambiarlo implica repensar el deduplicado, porque contenido cifrado con claves distintas no deduplica.
-
-**Federación entre hubs**, para que dos redes distintas puedan tender un puente entre sí. Es el cambio más profundo: rompe el supuesto de fuente única de verdad sobre el que descansa todo el modelo actual.
-
-### Lo que deliberadamente no se hará
-
-**Sincronización bidireccional de carpetas.** Fue evaluado y descartado al inicio. El modelo append-only es lo que hace simple todo lo demás; volver a estado mutable compartido reintroduce conflictos, borrados ambiguos y reconciliación, que es la clase de complejidad que el diseño existe para evitar.
-
-**Montaje como unidad de red.** Técnicamente posible vía WebDAV, pero el cliente de Windows es históricamente lento y frágil. El navegador cubre el caso de uso real con mejor comportamiento.
-
----
-
-## Nota de mantenimiento
-
-Cuando un cambio contradiga una decisión registrada, **edita el ADR** en `docs/puente-diseno-tecnico.md` en vez de dejar que el código y el documento se separen en silencio.
-
-Un diseño desactualizado es peor que no tener ninguno: te hace confiar en algo falso.
+Descartado a propósito: sincronización bidireccional de carpetas y montaje como unidad de red. Los motivos están en el [roadmap](docs/puente-roadmap.md).
 
 ---
 
@@ -359,6 +259,6 @@ Un diseño desactualizado es peor que no tener ninguno: te hace confiar en algo 
 
 | Documento | Contenido |
 |---|---|
-| `docs/puente-diseno-tecnico.md` | ADR completos, modelo de datos, seguridad, API |
-| `docs/puente-schema.sql` | esquema SQLite comentado, consultas de referencia |
-| `docs/puente-roadmap.md` | hitos con criterios de aceptación |
+| [`docs/puente-diseno-tecnico.md`](docs/puente-diseno-tecnico.md) | ADR completos, modelo de datos, modelo de seguridad, API |
+| [`docs/puente-schema.sql`](docs/puente-schema.sql) | esquema SQLite comentado, con consultas de referencia |
+| [`docs/puente-roadmap.md`](docs/puente-roadmap.md) | hitos con criterios de aceptación |
