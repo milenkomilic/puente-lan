@@ -3,181 +3,649 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Puente</title>
+<script>
+  /* Se aplica el tema ANTES de pintar para que no haya un destello de color
+     equivocado al cargar. "auto" deja mandar a la preferencia del sistema. */
+  try { document.documentElement.setAttribute("data-theme", localStorage.getItem("puente-theme") || "auto"); }
+  catch (e) { document.documentElement.setAttribute("data-theme", "auto"); }
+</script>
 <style>
+  /* ══════════════════════════════════════════════════════
+     TOKENS — tema claro (por defecto)
+     Paleta cálida tipo papel + acento terracota.
+     Todo el resto del CSS usa variables: para cambiar la
+     identidad visual no hay que tocar nada más que esto.
+     ══════════════════════════════════════════════════════ */
   :root {
-    --bg: #131316;
-    --bg-raised: #1a1a1f;
-    --bg-elevated: #202027;
-    --bg-hover: #26262e;
-    --bg-input: #1c1c22;
-    --border: #2b2b33;
-    --border-soft: #232329;
-    --text: #ececee;
-    --text-dim: #a3a2ab;
-    --text-faint: #6f6e78;
-    --accent: #4d7ef2;
-    --accent-hover: #3f6de0;
-    --accent-soft: rgba(77,126,242,.14);
-    --danger: #ef5b52;
-    --danger-soft: rgba(239,91,82,.12);
-    --warn: #d9a441;
-    --ok: #5fbf76;
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 18px;
-    --shadow-lg: 0 24px 60px rgba(0,0,0,.45), 0 4px 16px rgba(0,0,0,.3);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bg:            #faf9f5;
+    --bg-side:       #f2f0e8;
+    --surface:       #ffffff;
+    --surface-2:     #f6f4ed;
+    --hover:         #eceadf;
+    --hover-strong:  #e3e0d3;
+    --input:         #ffffff;
+    --border:        #e2ddd0;
+    --border-soft:   #ebe7db;
+    --text:          #1f1e1d;
+    --text-dim:      #6d695e;
+    --text-faint:    #979286;
+
+    --accent:        #c0603d;
+    --accent-hover:  #a95232;
+    --accent-fg:     #ffffff;
+    --accent-soft:   rgba(192,96,61,.10);
+    --accent-line:   rgba(192,96,61,.30);
+
+    --danger:        #b0453a;
+    --danger-fg:     #ffffff;
+    --danger-soft:   rgba(176,69,58,.10);
+    --danger-line:   rgba(176,69,58,.32);
+    --ok:            #3d7a51;
+    --ok-soft:       rgba(61,122,81,.12);
+    --warn:          #96661c;
+    --warn-soft:     rgba(150,102,28,.13);
+
+    --ring:          rgba(192,96,61,.26);
+    --scrim:         rgba(41,37,31,.36);
+
+    --shadow-xs: 0 1px 2px rgba(41,37,31,.06);
+    --shadow-sm: 0 2px 6px rgba(41,37,31,.07), 0 1px 2px rgba(41,37,31,.05);
+    --shadow-md: 0 10px 28px rgba(41,37,31,.10), 0 2px 6px rgba(41,37,31,.06);
+    --shadow-lg: 0 28px 70px rgba(41,37,31,.20), 0 6px 20px rgba(41,37,31,.10);
+
+    --r-xs: 6px; --r-sm: 9px; --r-md: 13px; --r-lg: 18px; --r-xl: 24px;
+
+    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter,
+            Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino,
+                  Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                 "Liberation Mono", monospace;
+
+    --ease: cubic-bezier(.32,.72,0,1);
   }
+
+  /* ── tema oscuro: por sistema, salvo que se haya forzado "light" ── */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:            #262624;
+      --bg-side:       #1f1e1d;
+      --surface:       #30302e;
+      --surface-2:     #2a2a28;
+      --hover:         #3a3a37;
+      --hover-strong:  #454541;
+      --input:         #1f1e1d;
+      --border:        #403f3b;
+      --border-soft:   #35342f;
+      --text:          #f3f1e9;
+      --text-dim:      #a8a49a;
+      --text-faint:    #7c786f;
+
+      --accent:        #d97757;
+      --accent-hover:  #e5896a;
+      --accent-fg:     #241008;
+      --accent-soft:   rgba(217,119,87,.15);
+      --accent-line:   rgba(217,119,87,.38);
+
+      --danger:        #e2695c;
+      --danger-fg:     #2a0c08;
+      --danger-soft:   rgba(226,105,92,.13);
+      --danger-line:   rgba(226,105,92,.36);
+      --ok:            #6fc086;
+      --ok-soft:       rgba(111,192,134,.13);
+      --warn:          #d9a441;
+      --warn-soft:     rgba(217,164,65,.13);
+
+      --ring:          rgba(217,119,87,.32);
+      --scrim:         rgba(8,8,7,.62);
+
+      --shadow-xs: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-sm: 0 2px 6px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.26);
+      --shadow-md: 0 10px 28px rgba(0,0,0,.42), 0 2px 6px rgba(0,0,0,.30);
+      --shadow-lg: 0 28px 70px rgba(0,0,0,.55), 0 6px 20px rgba(0,0,0,.38);
+    }
+  }
+  /* ── tema oscuro forzado a mano ── */
+  :root[data-theme="dark"] {
+    --bg:            #262624;
+    --bg-side:       #1f1e1d;
+    --surface:       #30302e;
+    --surface-2:     #2a2a28;
+    --hover:         #3a3a37;
+    --hover-strong:  #454541;
+    --input:         #1f1e1d;
+    --border:        #403f3b;
+    --border-soft:   #35342f;
+    --text:          #f3f1e9;
+    --text-dim:      #a8a49a;
+    --text-faint:    #7c786f;
+
+    --accent:        #d97757;
+    --accent-hover:  #e5896a;
+    --accent-fg:     #241008;
+    --accent-soft:   rgba(217,119,87,.15);
+    --accent-line:   rgba(217,119,87,.38);
+
+    --danger:        #e2695c;
+    --danger-fg:     #2a0c08;
+    --danger-soft:   rgba(226,105,92,.13);
+    --danger-line:   rgba(226,105,92,.36);
+    --ok:            #6fc086;
+    --ok-soft:       rgba(111,192,134,.13);
+    --warn:          #d9a441;
+    --warn-soft:     rgba(217,164,65,.13);
+
+    --ring:          rgba(217,119,87,.32);
+    --scrim:         rgba(8,8,7,.62);
+
+    --shadow-xs: 0 1px 2px rgba(0,0,0,.30);
+    --shadow-sm: 0 2px 6px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.26);
+    --shadow-md: 0 10px 28px rgba(0,0,0,.42), 0 2px 6px rgba(0,0,0,.30);
+    --shadow-lg: 0 28px 70px rgba(0,0,0,.55), 0 6px 20px rgba(0,0,0,.38);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     BASE
+     ══════════════════════════════════════════════════════ */
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin:0; display:flex; font-family: var(--font);
-         background:var(--bg); color:var(--text); font-size:14px;
-         -webkit-font-smoothing: antialiased; }
-  button { font-family: inherit; font-size: 13px; }
-  ::-webkit-scrollbar { width:9px; height:9px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:8px; border:2px solid var(--bg); }
-  ::-webkit-scrollbar-thumb:hover { background:#3a3a44; }
+  body {
+    margin: 0; display: flex; font-family: var(--font);
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    transition: background .2s var(--ease), color .2s var(--ease);
+  }
+  button, input, select, textarea { font-family: inherit; font-size: 13.5px; color: inherit; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
-  /* ── layout ──────────────────────────────────────── */
-  #app { flex:1; display:flex; }
-  #side { width:264px; flex-shrink:0; border-right:1px solid var(--border-soft);
-          display:flex; flex-direction:column; background:var(--bg-raised); }
-  #side h1 { font-size:14px; font-weight:600; padding:16px 16px 14px;
-             margin:0; display:flex; justify-content:space-between; align-items:center;
-             letter-spacing:-.01em; }
-  #side h1 .who { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #side h1 .who b { font-weight:600; }
-  #bridges { flex:1; overflow-y:auto; padding:4px 8px; }
-  .bridge { padding:9px 11px; cursor:pointer; border-radius:var(--radius-sm);
-            display:flex; justify-content:space-between; align-items:center;
-            margin-bottom:2px; color:var(--text-dim); transition:background .1s; }
-  .bridge span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bridge:hover { background:var(--bg-hover); color:var(--text); }
-  .bridge.active { background:var(--accent-soft); color:var(--text); }
-  .bridge .gear { opacity:0; color:var(--text-faint); padding:0 2px 0 8px; flex-shrink:0; }
-  .bridge:hover .gear, .bridge.active .gear { opacity:1; }
-  .bridge .gear:hover { color:var(--text); }
-  #sidefoot { padding:10px; border-top:1px solid var(--border-soft);
-              display:flex; flex-direction:column; gap:4px; }
-  .sidebtn { padding:9px 12px; background:var(--accent); color:#fff; text-align:left;
-             border:0; border-radius:var(--radius-sm); cursor:pointer; font-weight:500;
-             transition:background .12s; }
-  .sidebtn:hover { background:var(--accent-hover); }
-  .sidebtn.ghost { background:transparent; color:var(--text-dim); font-weight:400; }
-  .sidebtn.ghost:hover { background:var(--bg-hover); color:var(--text); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); background-clip: content-box; }
 
-  #main { flex:1; display:flex; flex-direction:column; position:relative; min-width:0; }
-  #head { padding:15px 22px; border-bottom:1px solid var(--border-soft); font-weight:600;
-          letter-spacing:-.01em; }
-  #head.placeholder { color:var(--text-faint); font-weight:400; }
-  #log { flex:1; overflow-y:auto; padding:22px 24px; }
-  .msg { margin-bottom:14px; max-width:68%; }
-  .msg.mine { margin-left:auto; text-align:right; }
-  .meta { font-size:11.5px; color:var(--text-faint); margin-bottom:4px; }
-  .body { background:var(--bg-elevated); padding:9px 14px; border-radius:var(--radius-md);
-          display:inline-block; white-space:pre-wrap; text-align:left; line-height:1.45;
-          box-shadow:var(--shadow-sm); }
-  .msg.mine .body { background:var(--accent); color:#fff; }
-  .file { display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit; }
-  .file .sz { font-size:11px; color:var(--text-dim); }
-  .msg.mine .file .sz { color:rgba(255,255,255,.75); }
+  @keyframes fade-in   { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes fade-out  { from { opacity: 1 } to { opacity: 0 } }
+  @keyframes pop-in    { from { opacity: 0; transform: translateY(14px) scale(.975) } to { opacity: 1; transform: none } }
+  @keyframes pop-out   { from { opacity: 1; transform: none } to { opacity: 0; transform: translateY(6px) scale(.985) } }
+  @keyframes slide-in  { from { opacity: 0; transform: translateX(22px) scale(.97) } to { opacity: 1; transform: none } }
+  @keyframes slide-out { from { opacity: 1; transform: none } to { opacity: 0; transform: translateX(22px) scale(.97) } }
+  @keyframes msg-in    { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+  @keyframes shimmer   { from { background-position: -420px 0 } to { background-position: 420px 0 } }
+  @keyframes spin      { to { transform: rotate(360deg) } }
 
-  #bar { padding:14px 20px 20px; }
-  #composer { display:flex; gap:8px; align-items:center; background:var(--bg-input);
-              border:1px solid var(--border); border-radius:var(--radius-lg);
-              padding:6px 8px 6px 14px; transition:border-color .12s; }
-  #composer:focus-within { border-color:#3d3d48; }
-  #input { flex:1; padding:8px 0; background:transparent; border:0; outline:none;
-           color:var(--text); font-size:14px; font-family:inherit; }
-  #input::placeholder { color:var(--text-faint); }
-  #input:disabled::placeholder { color:var(--text-faint); }
-  #clip { background:none; border:0; color:var(--text-dim); font-size:19px; cursor:pointer;
-          width:32px; height:32px; border-radius:50%; flex-shrink:0; transition:background .1s, color .1s; }
-  #clip:hover { background:var(--bg-hover); color:var(--text); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+                             transition-duration: .01ms !important; }
+  }
 
-  #drop { position:absolute; inset:0; background:rgba(77,126,242,.1); backdrop-filter:blur(2px);
-          border:2px dashed var(--accent); border-radius:var(--radius-lg); margin:10px;
-          display:none; align-items:center; justify-content:center; pointer-events:none;
-          z-index:5; font-weight:500; color:var(--accent); }
-  #drop.on { display:flex; }
-  #prog { height:2px; background:var(--accent); width:0; transition:width .15s; }
-  .err { color:var(--danger); font-size:12px; padding:0 22px 6px; }
-  .empty { color:var(--text-dim); font-size:13px; padding:10px 0; line-height:1.5; }
+  /* ══════════════════════════════════════════════════════
+     LAYOUT
+     ══════════════════════════════════════════════════════ */
+  #app { flex: 1; display: flex; min-width: 0; }
 
-  /* ── pantallas de entrada (gate) ─────────────────── */
-  #gate-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; }
-  #gate { width:100%; max-width:380px; background:var(--bg-raised); border:1px solid var(--border-soft);
-          border-radius:var(--radius-lg); padding:32px 30px; box-shadow:var(--shadow-lg);
-          text-align:center; }
-  #gate .brand { font-size:12px; color:var(--text-faint); text-transform:uppercase;
-                 letter-spacing:.08em; margin-bottom:14px; font-weight:600; }
-  #gate h2 { margin:0 0 8px; font-size:18px; font-weight:600; letter-spacing:-.01em; }
-  #gate .sub { color:var(--text-dim); font-size:13.5px; line-height:1.5; margin-bottom:20px; }
-  #gate .txt { width:100%; margin-bottom:12px; padding:11px 14px; font-size:14.5px; }
-  #gate .actions { display:flex; flex-direction:column; gap:8px; }
-  #gate .actions.row { flex-direction:row; }
-  #gate .actions.row .mini { flex:1; }
-  #gate .mini.go, #gate .mini.danger { padding:11px 16px; font-size:14px; font-weight:500; }
+  #side {
+    width: 272px; flex-shrink: 0; display: flex; flex-direction: column;
+    background: var(--bg-side); border-right: 1px solid var(--border-soft);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; }
+  .brand .mark {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand .mark svg { width: 19px; height: 19px; }
+  .brand .name { font-size: 15px; font-weight: 600; letter-spacing: -.012em; font-family: var(--font-serif); }
+  .brand .spacer { flex: 1; }
 
-  /* ── modal ───────────────────────────────────────── */
-  #modal { position:fixed; inset:0; background:rgba(8,8,10,.65); backdrop-filter:blur(3px);
-           display:none; align-items:center; justify-content:center; z-index:20; padding:24px; }
-  #modal.on { display:flex; }
-  #card { background:var(--bg-raised); border:1px solid var(--border-soft);
-          border-radius:var(--radius-lg); width:480px; max-height:82vh; overflow-y:auto;
-          padding:24px; box-shadow:var(--shadow-lg); }
-  #card h2 { margin:0 0 4px; font-size:17px; font-weight:600; letter-spacing:-.01em; }
-  #card h3 { margin:22px 0 8px; font-size:11.5px; color:var(--text-faint);
-             text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
-  #card h3:first-of-type { margin-top:18px; }
-  .row { display:flex; justify-content:space-between; align-items:center;
-         padding:9px 0; border-bottom:1px solid var(--border-soft); gap:10px; }
-  .row:last-child { border:0; }
-  .row > span:first-child { min-width:0; overflow-wrap:anywhere; }
-  .tag { font-size:11px; color:var(--text-faint); margin-left:7px; }
+  #bridges { flex: 1; overflow-y: auto; padding: 2px 8px 8px; }
+  .sec-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--text-faint); padding: 10px 11px 6px;
+  }
+  .bridge {
+    padding: 8px 10px; cursor: pointer; border-radius: var(--r-sm);
+    display: flex; align-items: center; gap: 9px; margin-bottom: 1px;
+    color: var(--text-dim); position: relative;
+    transition: background .13s var(--ease), color .13s var(--ease);
+  }
+  .bridge .dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: var(--text-faint); opacity: .4; transition: all .18s var(--ease);
+  }
+  .bridge .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bridge:hover { background: var(--hover); color: var(--text); }
+  .bridge:active { transform: scale(.985); }
+  .bridge.active { background: var(--accent-soft); color: var(--text); font-weight: 500; }
+  .bridge.active .dot { background: var(--accent); opacity: 1; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .bridge .gear {
+    opacity: 0; color: var(--text-faint); flex-shrink: 0; width: 24px; height: 24px;
+    border: 0; background: none; border-radius: var(--r-xs); cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .13s var(--ease), background .13s var(--ease), color .13s var(--ease);
+  }
+  .bridge:hover .gear, .bridge.active .gear, .bridge .gear:focus-visible { opacity: 1; }
+  .bridge .gear:hover { background: var(--hover-strong); color: var(--text); }
+  .bridge .gear svg { width: 15px; height: 15px; }
 
-  .pill { font-size:12px; font-weight:500; padding:3px 10px; border-radius:999px;
-          white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
-  .pill.ok { color:var(--ok); background:rgba(95,191,118,.12); }
-  .pill.bad { color:var(--danger); background:var(--danger-soft); }
-  .pill.wait { color:var(--text-faint); background:var(--bg-hover); }
+  #sidefoot { padding: 8px; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 2px; }
+  .sidebtn {
+    padding: 9px 11px; background: transparent; color: var(--text-dim); text-align: left;
+    border: 0; border-radius: var(--r-sm); cursor: pointer; font-weight: 400;
+    display: flex; align-items: center; gap: 10px;
+    transition: background .13s var(--ease), color .13s var(--ease);
+  }
+  .sidebtn svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .85; }
+  .sidebtn:hover { background: var(--hover); color: var(--text); }
+  .sidebtn:active { transform: scale(.985); }
+  .sidebtn.primary {
+    background: var(--accent); color: var(--accent-fg); font-weight: 500;
+    box-shadow: var(--shadow-xs); margin-bottom: 4px;
+  }
+  .sidebtn.primary:hover { background: var(--accent-hover); color: var(--accent-fg); }
 
-  /* ── controles ───────────────────────────────────── */
-  .mini { background:transparent; border:1px solid var(--border); color:var(--text-dim);
-          padding:6px 11px; border-radius:var(--radius-sm); cursor:pointer;
-          transition:border-color .12s, color .12s, background .12s; white-space:nowrap; }
-  .mini:hover { border-color:#454550; color:var(--text); background:var(--bg-hover); }
-  .mini.danger { color:var(--danger); border-color:rgba(239,91,82,.35); }
-  .mini.danger:hover { background:var(--danger-soft); border-color:var(--danger); }
-  .mini.go { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .mini.go:hover { background:var(--accent-hover); border-color:var(--accent-hover); }
-  select, .txt { background:var(--bg-input); border:1px solid var(--border); color:var(--text);
-                 padding:8px 10px; border-radius:var(--radius-sm); font-size:13.5px;
-                 font-family:inherit; outline:none; transition:border-color .12s; }
-  select:focus, .txt:focus { border-color:#454550; }
+  .whoami {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-top: 4px;
+    border-top: 1px solid var(--border-soft); padding-top: 12px;
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: var(--accent); color: var(--accent-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12.5px; font-weight: 600; text-transform: uppercase;
+  }
+  .whoami .t { flex: 1; min-width: 0; }
+  .whoami .t b { display: block; font-size: 13px; font-weight: 600; overflow: hidden;
+                 text-overflow: ellipsis; white-space: nowrap; }
+  .whoami .t span { display: block; font-size: 11.5px; color: var(--text-faint); }
 
-  code { background:var(--bg-elevated); padding:9px 11px; border-radius:var(--radius-sm);
-         font-size:12px; word-break:break-all; display:block; margin-top:6px; line-height:1.5;
-         border:1px solid var(--border-soft); color:var(--text-dim); }
+  /* ── panel principal ── */
+  #main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; background: var(--bg); }
+  #head {
+    padding: 0 24px; height: 58px; flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-soft); font-weight: 600; font-size: 15px;
+    letter-spacing: -.012em; background: var(--bg);
+  }
+  #head.placeholder { color: var(--text-faint); font-weight: 400; }
 
-  #notices { position:fixed; top:16px; right:16px; z-index:40; width:330px; }
-  .notice { background:var(--bg-elevated); border:1px solid var(--border);
-            border-left:3px solid var(--warn); padding:12px 14px; border-radius:var(--radius-sm);
-            margin-bottom:8px; font-size:13px; box-shadow:var(--shadow-lg);
-            display:flex; justify-content:space-between; gap:10px; }
-  .notice button { background:none; border:0; color:var(--text-faint); cursor:pointer; font-size:15px; }
-  .notice button:hover { color:var(--text); }
+  #log { flex: 1; overflow-y: auto; padding: 24px 24px 8px; scroll-behavior: smooth; }
+  .msg { margin-bottom: 16px; max-width: min(70%, 620px); animation: msg-in .22s var(--ease) both; }
+  .msg.mine { margin-left: auto; }
+  .meta { font-size: 11.5px; color: var(--text-faint); margin-bottom: 5px; padding: 0 4px; }
+  .msg.mine .meta { text-align: right; }
+  .body {
+    background: var(--surface); border: 1px solid var(--border-soft);
+    padding: 10px 14px; border-radius: 16px 16px 16px 5px;
+    display: inline-block; white-space: pre-wrap; overflow-wrap: anywhere;
+    line-height: 1.55; box-shadow: var(--shadow-xs);
+    transition: box-shadow .16s var(--ease);
+  }
+  .body:hover { box-shadow: var(--shadow-sm); }
+  .msg.mine .body {
+    background: var(--accent); color: var(--accent-fg); border-color: transparent;
+    border-radius: 16px 16px 5px 16px;
+  }
+  .file { display: flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; }
+  .file .ic {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .16s var(--ease);
+  }
+  .file .ic svg { width: 16px; height: 16px; }
+  .msg.mine .file .ic { background: rgba(255,255,255,.22); color: var(--accent-fg); }
+  .file:hover .ic { transform: translateY(2px); }
+  .file .fn { font-weight: 500; overflow-wrap: anywhere; }
+  .file .sz { font-size: 11.5px; color: var(--text-dim); }
+  .msg.mine .file .sz { color: var(--accent-fg); opacity: .78; }
+
+  #bar { padding: 8px 24px 20px; flex-shrink: 0; }
+  #composer {
+    display: flex; gap: 6px; align-items: center; background: var(--input);
+    border: 1px solid var(--border); border-radius: var(--r-xl);
+    padding: 6px 6px 6px 8px; box-shadow: var(--shadow-xs);
+    transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+  }
+  #composer:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  #input { flex: 1; padding: 9px 2px; background: transparent; border: 0; outline: none;
+           color: var(--text); font-size: 14.5px; }
+  #input::placeholder { color: var(--text-faint); }
+  .iconbtn {
+    background: none; border: 0; color: var(--text-dim); cursor: pointer; padding: 0;
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .13s var(--ease), color .13s var(--ease), transform .13s var(--ease);
+  }
+  .iconbtn svg { width: 18px; height: 18px; }
+  .iconbtn:hover { background: var(--hover); color: var(--text); }
+  .iconbtn:active { transform: scale(.92); }
+  .iconbtn:disabled { opacity: .35; cursor: default; }
+  .iconbtn:disabled:hover { background: none; color: var(--text-dim); }
+  #send { background: var(--accent); color: var(--accent-fg); }
+  #send:hover { background: var(--accent-hover); color: var(--accent-fg); }
+  #send:disabled { background: var(--hover); color: var(--text-faint); }
+  #send:disabled:hover { background: var(--hover); }
+
+  #drop {
+    position: absolute; inset: 10px; background: var(--accent-soft);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    border: 2px dashed var(--accent); border-radius: var(--r-lg);
+    display: none; align-items: center; justify-content: center; pointer-events: none;
+    z-index: 5; font-weight: 500; color: var(--accent); flex-direction: column; gap: 10px;
+  }
+  #drop.on { display: flex; animation: fade-in .14s var(--ease); }
+  #drop svg { width: 30px; height: 30px; }
+
+  #prog { height: 2px; background: var(--accent); width: 0; transition: width .18s var(--ease);
+          border-radius: 2px; margin: 0 24px; }
+  .err { color: var(--danger); font-size: 12.5px; padding: 6px 24px 0; min-height: 0; }
+
+  /* ══════════════════════════════════════════════════════
+     GATE (pantallas previas al inicio de sesión)
+     ══════════════════════════════════════════════════════ */
+  #gate-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  #gate {
+    width: 100%; max-width: 400px; background: var(--surface);
+    border: 1px solid var(--border-soft); border-radius: var(--r-xl);
+    padding: 34px 32px 30px; box-shadow: var(--shadow-md); text-align: center;
+    animation: pop-in .3s var(--ease) both;
+  }
+  #gate .mark {
+    width: 46px; height: 46px; border-radius: 14px; margin: 0 auto 16px;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #gate .mark svg { width: 26px; height: 26px; }
+  #gate h2 { margin: 0 0 8px; font-size: 21px; font-weight: 600; letter-spacing: -.02em;
+             font-family: var(--font-serif); line-height: 1.25; }
+  #gate .sub { color: var(--text-dim); font-size: 14px; line-height: 1.55; margin-bottom: 22px; }
+  #gate .txt { width: 100%; margin-bottom: 14px; padding: 12px 14px; font-size: 15px; text-align: center; }
+  #gate .actions { display: flex; flex-direction: column; gap: 8px; }
+  #gate .actions.row { flex-direction: row; }
+  #gate .actions.row .btn { flex: 1; justify-content: center; }
+  #gate .actions .btn { padding: 11px 16px; font-size: 14.5px; justify-content: center; }
+  #gate .note {
+    margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-soft);
+    font-size: 12.5px; color: var(--text-dim); line-height: 1.55; text-align: left;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     BOTONES Y CAMPOS
+     ══════════════════════════════════════════════════════ */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 7px 13px; border-radius: var(--r-sm); cursor: pointer; text-decoration: none;
+    font-weight: 500; box-shadow: var(--shadow-xs);
+    transition: background .13s var(--ease), border-color .13s var(--ease),
+                color .13s var(--ease), transform .1s var(--ease), box-shadow .13s var(--ease);
+  }
+  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .btn:hover { background: var(--hover); border-color: var(--text-faint); color: var(--text); }
+  .btn:active { transform: scale(.97); box-shadow: none; }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-fg); }
+  .btn.danger { color: var(--danger); border-color: var(--danger-line); }
+  .btn.danger:hover { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+  .btn.danger-solid { background: var(--danger); border-color: var(--danger); color: var(--danger-fg); }
+  .btn.danger-solid:hover { background: var(--danger); border-color: var(--danger); filter: brightness(1.06); color: var(--danger-fg); }
+  .btn.quiet { background: transparent; border-color: transparent; box-shadow: none; }
+  .btn.quiet:hover { background: var(--hover); border-color: transparent; }
+  .btn.sm { padding: 5px 10px; font-size: 12.5px; }
+
+  select, .txt {
+    background: var(--input); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 11px; border-radius: var(--r-sm); font-size: 13.5px;
+    outline: none; transition: border-color .14s var(--ease), box-shadow .14s var(--ease);
+  }
+  select:focus, .txt:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--ring); }
+  .txt::placeholder { color: var(--text-faint); }
+
+  /* segmento (Apariencia) */
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border);
+         border-radius: var(--r-sm); padding: 2px; gap: 2px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-dim); cursor: pointer;
+    padding: 5px 12px; border-radius: 7px; font-weight: 500;
+    transition: background .14s var(--ease), color .14s var(--ease);
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-xs); }
+
+  /* ══════════════════════════════════════════════════════
+     MODAL
+     ══════════════════════════════════════════════════════ */
+  #modal {
+    position: fixed; inset: 0; background: var(--scrim);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; z-index: 30; padding: 24px;
+  }
+  #modal.on { display: flex; animation: fade-in .16s var(--ease); }
+  #modal.out { animation: fade-out .14s var(--ease) forwards; }
+  #card {
+    background: var(--surface); border: 1px solid var(--border-soft);
+    border-radius: var(--r-xl); width: 520px; max-width: 100%; max-height: 84vh;
+    display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-lg);
+    animation: pop-in .26s var(--ease) both;
+  }
+  #modal.out #card { animation: pop-out .14s var(--ease) forwards; }
+
+  .m-head {
+    display: flex; align-items: flex-start; gap: 12px; padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
+  }
+  .m-head .t { flex: 1; min-width: 0; }
+  .m-head h2 { margin: 0; font-size: 17.5px; font-weight: 600; letter-spacing: -.015em;
+               font-family: var(--font-serif); overflow-wrap: anywhere; }
+  .m-head .sub { margin-top: 3px; font-size: 12.5px; color: var(--text-dim); }
+  .m-body { padding: 4px 20px 18px; overflow-y: auto; flex: 1; }
+  .m-foot {
+    padding: 13px 20px; border-top: 1px solid var(--border-soft); flex-shrink: 0;
+    display: flex; justify-content: flex-end; gap: 8px; background: var(--surface-2);
+  }
+
+  /* ── bloque de sección: TODO en configuración vive acá, al mismo nivel ── */
+  .panel {
+    border: 1px solid var(--border-soft); border-radius: var(--r-md);
+    background: var(--surface-2); margin-top: 14px; overflow: hidden;
+  }
+  .panel-h {
+    display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+    border-bottom: 1px solid var(--border-soft); background: var(--surface);
+  }
+  .panel-h .ph-ic { color: var(--text-faint); display: flex; flex-shrink: 0; }
+  .panel-h .ph-ic svg { width: 16px; height: 16px; }
+  .panel-h .ph-t { flex: 1; min-width: 0; font-weight: 600; font-size: 13px; letter-spacing: -.005em; }
+  .panel-h .ph-t small { display: block; font-weight: 400; font-size: 11.5px; color: var(--text-faint);
+                         letter-spacing: 0; margin-top: 1px; }
+  .panel-b { padding: 4px 14px 12px; }
+  .panel-b > .row:first-child { border-top: 0; }
+
+  h3.sec {
+    margin: 22px 0 6px; font-size: 11px; color: var(--text-faint);
+    text-transform: uppercase; letter-spacing: .07em; font-weight: 600;
+  }
+  h3.sec:first-child { margin-top: 14px; }
+
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-top: 1px solid var(--border-soft); gap: 12px;
+  }
+  .row:first-child { border-top: 0; }
+  .row > span:first-child, .row > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .row .actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .row .lbl { display: block; }
+  .row .lbl small { display: block; color: var(--text-faint); font-size: 11.5px; margin-top: 1px; }
+
+  .tag {
+    font-size: 11px; color: var(--text-faint); margin-left: 7px; padding: 1px 7px;
+    border: 1px solid var(--border); border-radius: 999px; white-space: nowrap;
+  }
+  .tag.me { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+
+  .pill {
+    font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    border: 1px solid transparent;
+  }
+  .pill svg { width: 12px; height: 12px; }
+  .pill.ok   { color: var(--ok);        background: var(--ok-soft);     border-color: var(--ok-soft); }
+  .pill.bad  { color: var(--danger);    background: var(--danger-soft); border-color: var(--danger-line); }
+  .pill.wait { color: var(--text-faint);background: var(--hover);       border-color: var(--border-soft); }
+  .pill .spin { animation: spin 1s linear infinite; display: flex; }
+
+  .hint { color: var(--text-dim); font-size: 12.5px; line-height: 1.6; padding: 8px 0 2px; }
+  .hint b { color: var(--text); font-weight: 600; }
+  .empty {
+    color: var(--text-dim); font-size: 13px; padding: 16px 0; line-height: 1.55;
+    text-align: center;
+  }
+  .empty.left { text-align: left; padding: 10px 0; }
+
+  code {
+    background: var(--input); padding: 10px 12px; border-radius: var(--r-sm);
+    font-family: var(--font-mono); font-size: 12px; word-break: break-all; display: block;
+    margin-top: 6px; line-height: 1.55; border: 1px solid var(--border); color: var(--text-dim);
+  }
+  code.inline { display: inline; padding: 2px 6px; margin: 0; font-size: 12px; }
+
+  .qr { margin-top: 12px; background: #fff; padding: 10px; border-radius: var(--r-md);
+        width: 172px; display: block; box-shadow: var(--shadow-xs); }
+
+  /* skeleton de carga */
+  .sk {
+    border-radius: 7px; height: 13px; margin: 12px 0;
+    background: linear-gradient(90deg, var(--hover) 25%, var(--surface-2) 50%, var(--hover) 75%);
+    background-size: 420px 100%; animation: shimmer 1.3s linear infinite;
+  }
+  .sk.t { height: 17px; width: 45%; }
+  .sk.a { width: 100%; } .sk.b { width: 78%; } .sk.c { width: 60%; }
+
+  /* ══════════════════════════════════════════════════════
+     DIÁLOGOS (reemplazan alert / confirm / prompt nativos)
+     ══════════════════════════════════════════════════════ */
+  .dlg-ov {
+    position: fixed; inset: 0; background: var(--scrim);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; z-index: 50; padding: 24px;
+    animation: fade-in .14s var(--ease);
+  }
+  .dlg-ov.out { animation: fade-out .13s var(--ease) forwards; }
+  .dlg {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-lg);
+    width: 420px; max-width: 100%; box-shadow: var(--shadow-lg);
+    animation: pop-in .22s var(--ease) both;
+  }
+  .dlg-ov.out .dlg { animation: pop-out .13s var(--ease) forwards; }
+  .dlg-b { display: flex; gap: 14px; padding: 22px 22px 18px; }
+  .dlg-ico {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .dlg-ico svg { width: 18px; height: 18px; }
+  .dlg-ico.danger { background: var(--danger-soft); color: var(--danger); }
+  .dlg-ico.warn   { background: var(--warn-soft);   color: var(--warn); }
+  .dlg-ico.ok     { background: var(--ok-soft);     color: var(--ok); }
+  .dlg-txt { flex: 1; min-width: 0; padding-top: 1px; }
+  .dlg-t { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .dlg-m { margin-top: 6px; font-size: 13.5px; color: var(--text-dim); line-height: 1.55;
+           overflow-wrap: anywhere; }
+  .dlg-m b { color: var(--text); }
+  .dlg-i { width: 100%; margin-top: 14px; }
+  .dlg-f {
+    display: flex; justify-content: flex-end; gap: 8px; padding: 13px 20px;
+    border-top: 1px solid var(--border-soft); background: var(--surface-2);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TOASTS
+     ══════════════════════════════════════════════════════ */
+  #toasts {
+    position: fixed; bottom: 18px; right: 18px; z-index: 60; width: 348px; max-width: calc(100vw - 32px);
+    display: flex; flex-direction: column; align-items: flex-end; gap: 9px; pointer-events: none;
+  }
+  .toast {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-md); box-shadow: var(--shadow-md); overflow: hidden;
+    display: flex; gap: 11px; padding: 12px 12px 12px 14px; font-size: 13.5px;
+    pointer-events: auto; position: relative; animation: slide-in .26s var(--ease) both;
+  }
+  .toast.out { animation: slide-out .18s var(--ease) forwards; }
+  .toast .t-ic { flex-shrink: 0; display: flex; padding-top: 1px; color: var(--accent); }
+  .toast .t-ic svg { width: 17px; height: 17px; }
+  .toast .t-tx { flex: 1; min-width: 0; line-height: 1.5; overflow-wrap: anywhere; color: var(--text); }
+  .toast .t-tx small { display: block; color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
+  .toast .t-x {
+    background: none; border: 0; color: var(--text-faint); cursor: pointer; flex-shrink: 0;
+    width: 22px; height: 22px; border-radius: 6px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s var(--ease), color .12s var(--ease);
+  }
+  .toast .t-x:hover { background: var(--hover); color: var(--text); }
+  .toast .t-x svg { width: 13px; height: 13px; }
+  .toast::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent);
+  }
+  .toast.ok::after     { background: var(--ok); }      .toast.ok .t-ic     { color: var(--ok); }
+  .toast.danger::after { background: var(--danger); }  .toast.danger .t-ic { color: var(--danger); }
+  .toast.warn::after   { background: var(--warn); }    .toast.warn .t-ic   { color: var(--warn); }
+
+  /* ══════════════════════════════════════════════════════
+     RESPONSIVE
+     ══════════════════════════════════════════════════════ */
+  @media (max-width: 720px) {
+    #side { width: 216px; }
+    .msg { max-width: 86%; }
+    #log { padding: 16px 14px 6px; }
+    #bar { padding: 8px 14px 14px; }
+    #head { padding: 0 16px; }
+    #toasts { left: 16px; right: 16px; width: auto; }
+  }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="modal" onclick="if(event.target===this)closeModal()"><div id="card"></div></div>
-<div id="notices"></div>
+<div id="dialogs"></div>
+<div id="toasts"></div>
 <script>
 let me=null, current=null, currentName="", ws=null, LIMIT=100*1024*1024;
+
+/* ══════════════════════════════════════════════════════════
+   Iconografía — SVG en línea, sin fuentes externas ni CDN:
+   el hub corre en LAN y puede no tener salida a internet.
+   ══════════════════════════════════════════════════════════ */
+const ICO = {
+  bridge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c0-5 4-9 9-9s9 4 9 9"/><path d="M2.5 16h19"/><path d="M7.5 16v-4"/><path d="M16.5 16v-4"/><path d="M12 16V8.2"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  users:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19"/><circle cx="10" cy="8" r="3.2"/><path d="M20 19v-1.4a3.5 3.5 0 0 0-2.6-3.3"/><path d="M15.5 5.2a3.2 3.2 0 0 1 0 5.6"/></svg>`,
+  trash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V5.5A1.5 1.5 0 0 1 11 4h2a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M6.5 7l.8 11.2A1.8 1.8 0 0 0 9.1 20h5.8a1.8 1.8 0 0 0 1.8-1.8L17.5 7"/><path d="M10.5 11v5M13.5 11v5"/></svg>`,
+  gear:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 14.6a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>`,
+  restore:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4.5V10h5.5"/></svg>`,
+  close:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  clip:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-7.6 7.6a4.5 4.5 0 0 1-6.4-6.4l8-8a3 3 0 0 1 4.3 4.3l-8 8a1.5 1.5 0 0 1-2.2-2.2l7.3-7.3"/></svg>`,
+  send:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 19h15"/></svg>`,
+  upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V8"/><path d="M7.5 12.5L12 8l4.5 4.5"/><path d="M4.5 4h15"/></svg>`,
+  copy:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.4"/><path d="M5.5 15H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 4h8A1.5 1.5 0 0 1 14.5 5.5V6"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>`,
+  x:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  dash:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"/></svg>`,
+  spinner:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.2"/></svg>`,
+  warn:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 16.6v.2"/></svg>`,
+  shield:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.3c0 4.5-3 8.2-7.5 9.7-4.5-1.5-7.5-5.2-7.5-9.7V6z"/></svg>`,
+  globe:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.2 9.5h17.6M3.2 14.5h17.6"/><path d="M12 3c2.4 2.4 3.6 5.4 3.6 9S14.4 18.6 12 21c-2.4-2.4-3.6-5.4-3.6-9S9.6 5.4 12 3z"/></svg>`,
+  disk:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.5" rx="7.5" ry="3"/><path d="M4.5 6.5v11c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-11"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg>`,
+  paint:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 0 0 18c1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h2.1A4.3 4.3 0 0 0 21 10.7C21 6.4 16.9 3 12 3z"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="11" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8" r="1.1" fill="currentColor" stroke="none"/></svg>`,
+  key:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="14" r="4"/><path d="M11 11.5L20 3"/><path d="M17.5 5.5L19.5 7.5"/><path d="M15 8l2 2"/></svg>`,
+  file:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M13.5 3v5.5H19"/></svg>`,
+};
 
 const api = async (p, o={}) => {
   const r = await fetch(p, { headers:{"Content-Type":"application/json"}, ...o });
@@ -188,20 +656,246 @@ const api = async (p, o={}) => {
 const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
 const human = n => n==null ? "" : n<1024 ? n+" B" : n<1048576 ? (n/1024).toFixed(1)+" KB"
                   : n<1073741824 ? (n/1048576).toFixed(1)+" MB" : (n/1073741824).toFixed(2)+" GB";
+const nl2br = s => esc(s).replace(/\n/g, "<br>");
+const escAttr = s => esc(s).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+/* Nombre que viaja dentro de un onclick="fn('...')": primero se escapa
+   para JavaScript y después para HTML, si no un nombre con apóstrofo
+   (o con comillas) rompe el atributo. */
+const jsArg = s => escAttr(String(s ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
 
-// ── pantalla de entrada centrada (gate) ────────────────
-// Toda pantalla previa al inicio de sesión (nombre de equipo, invitaciones,
-// solicitudes de amistad) pasa por acá, así queda centrada y con la misma
-// tarjeta en un solo lugar en vez de repetirse en cada función.
+/* ══════════════════════════════════════════════════════════
+   TEMA — claro / oscuro / automático
+   ══════════════════════════════════════════════════════════ */
+function getTheme() { try { return localStorage.getItem("puente-theme") || "auto"; } catch { return "auto"; } }
+function setTheme(t) {
+  try { localStorage.setItem("puente-theme", t); } catch {}
+  document.documentElement.setAttribute("data-theme", t);
+  document.querySelectorAll("#themeSeg button").forEach(b =>
+    b.classList.toggle("on", b.dataset.theme === t));
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOASTS — reemplazan a los alert() de aviso
+   ══════════════════════════════════════════════════════════ */
+function toast(text, kind="info", ms=6000) {
+  const box = document.getElementById("toasts");
+  const ic = kind === "ok" ? ICO.check : kind === "danger" ? ICO.warn
+           : kind === "warn" ? ICO.warn : ICO.info;
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  el.innerHTML = `<span class="t-ic">${ic}</span><div class="t-tx">${nl2br(text)}</div>
+                  <button class="t-x" aria-label="Cerrar">${ICO.close}</button>`;
+  const kill = () => {
+    if (el.dataset.gone) return;
+    el.dataset.gone = "1"; el.classList.add("out");
+    setTimeout(() => el.remove(), 180);
+  };
+  el.querySelector(".t-x").onclick = kill;
+  box.appendChild(el);
+  if (ms) setTimeout(kill, ms);
+  return el;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIÁLOGOS — reemplazan alert / confirm / prompt nativos.
+   Se apilan por encima del modal, así una confirmación no
+   obliga a cerrar la ventana desde la que se pidió.
+   ══════════════════════════════════════════════════════════ */
+const dlgStack = [];
+
+function showDialog({ title, message="", kind="info", input=null, buttons }) {
+  return new Promise(resolve => {
+    const ov = document.createElement("div");
+    ov.className = "dlg-ov";
+    const ic = kind === "danger" || kind === "warn" ? ICO.warn : kind === "ok" ? ICO.check : ICO.info;
+    ov.innerHTML = `
+      <div class="dlg" role="dialog" aria-modal="true">
+        <div class="dlg-b">
+          <div class="dlg-ico ${kind}">${ic}</div>
+          <div class="dlg-txt">
+            <div class="dlg-t">${esc(title)}</div>
+            ${message ? `<div class="dlg-m">${nl2br(message)}</div>` : ""}
+            ${input ? `<input class="txt dlg-i" placeholder="${escAttr(input.placeholder||"")}">` : ""}
+          </div>
+        </div>
+        <div class="dlg-f"></div>
+      </div>`;
+
+    const inp = ov.querySelector(".dlg-i");
+    if (inp && input.value) inp.value = input.value;
+
+    let done = false;
+    const finish = v => {
+      if (done) return; done = true;
+      const i = dlgStack.indexOf(ctl); if (i >= 0) dlgStack.splice(i, 1);
+      ov.classList.add("out");
+      setTimeout(() => { ov.remove(); if (prevFocus && prevFocus.focus) prevFocus.focus(); }, 150);
+      resolve(v);
+    };
+    const ctl = { el: ov, cancel: () => finish(buttons[0].value) };
+    const prevFocus = document.activeElement;
+
+    const foot = ov.querySelector(".dlg-f");
+    buttons.forEach(b => {
+      const el = document.createElement("button");
+      el.className = "btn" + (b.style ? " " + b.style : "");
+      el.textContent = b.label;
+      el.onclick = () => finish(typeof b.value === "function" ? b.value(inp) : b.value);
+      foot.appendChild(el);
+    });
+
+    ov.addEventListener("mousedown", e => { if (e.target === ov) ctl.cancel(); });
+    ov.addEventListener("keydown", e => {
+      // Enter confirma, salvo cuando el foco ya está en un botón
+      // (ahí manda el botón enfocado, no el de confirmar).
+      if (e.key === "Enter" && e.target.tagName !== "BUTTON") {
+        e.preventDefault(); foot.lastChild.click();
+      }
+      trapTab(ov, e);
+    });
+
+    document.getElementById("dialogs").appendChild(ov);
+    dlgStack.push(ctl);
+    setTimeout(() => { (inp || foot.lastChild).focus(); if (inp) inp.select(); }, 30);
+  });
+}
+
+const ui = {
+  alert: (message, o={}) => showDialog({
+    title: o.title || "Aviso", message, kind: o.kind || "info",
+    buttons: [{ label: o.ok || "Entendido", style: "primary", value: undefined }] }),
+
+  confirm: (message, o={}) => showDialog({
+    title: o.title || "¿Confirmar?", message, kind: o.kind || (o.danger ? "danger" : "warn"),
+    buttons: [ { label: o.cancel || "Cancelar", value: false },
+               { label: o.ok || "Confirmar", style: o.danger ? "danger-solid" : "primary", value: true } ] }),
+
+  /* Devuelve string o null al cancelar — misma semántica que prompt(). */
+  prompt: (message, o={}) => showDialog({
+    title: o.title || "", message, kind: o.danger ? "danger" : "info",
+    input: { value: o.value || "", placeholder: o.placeholder || "" },
+    buttons: [ { label: "Cancelar", value: null },
+               { label: o.ok || "Guardar", style: o.danger ? "danger-solid" : "primary",
+                 value: i => i.value } ] }),
+};
+
+/* Copiar al portapapeles con respaldo: navigator.clipboard NO existe
+   en http:// fuera de localhost, que es justo el caso de este hub en LAN. */
+async function copyText(text, btn) {
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
+  if (!ok) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+      ok = document.execCommand("copy"); ta.remove();
+    } catch {}
+  }
+  if (btn && ok) {
+    const prev = btn.innerHTML;
+    btn.innerHTML = `${ICO.check}<span>Copiado</span>`;
+    setTimeout(() => { btn.innerHTML = prev; }, 1600);
+  }
+  if (!ok) toast("No se pudo copiar automáticamente. Selecciona el enlace y cópialo a mano.", "warn");
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL
+   ══════════════════════════════════════════════════════════ */
+const modal = () => document.getElementById("modal");
+const card  = () => document.getElementById("card");
+let _modalTimer = null, _modalPrevFocus = null;
+
+function modalShell({ title, sub="", body, foot="" }) {
+  return `
+    <div class="m-head">
+      <div class="t"><h2>${title}</h2>${sub ? `<div class="sub">${sub}</div>` : ""}</div>
+      <button class="iconbtn" data-close aria-label="Cerrar">${ICO.close}</button>
+    </div>
+    <div class="m-body">${body}</div>
+    ${foot ? `<div class="m-foot">${foot}</div>` : ""}`;
+}
+
+/* Abre el modal (con animación de entrada). */
+function openModal(o) {
+  clearTimeout(_modalTimer);
+  const m = modal();
+  if (!m.classList.contains("on")) _modalPrevFocus = document.activeElement;
+  m.classList.remove("out");
+  card().innerHTML = typeof o === "string" ? o : modalShell(o);
+  m.classList.add("on");
+  setTimeout(() => {
+    const f = card().querySelector(".m-body input, .m-body select, .m-body button, [data-close]");
+    if (f) f.focus();
+  }, 40);
+}
+
+/* Reemplaza el contenido SIN reanimar la tarjeta (para pasar de skeleton a datos). */
+function fillModal(o) {
+  if (!modal().classList.contains("on")) return openModal(o);
+  card().innerHTML = typeof o === "string" ? o : modalShell(o);
+}
+
+/* Skeleton mientras se pide la información al hub. */
+function openModalLoading(title) {
+  openModal({ title, body: `<div class="sk t"></div><div class="sk a"></div>
+    <div class="sk b"></div><div class="sk a"></div><div class="sk c"></div>` });
+}
+
+function closeModal() {
+  const m = modal();
+  if (!m.classList.contains("on")) return;
+  m.classList.add("out");
+  _modalTimer = setTimeout(() => {
+    m.classList.remove("on", "out"); card().innerHTML = "";
+    if (_modalPrevFocus && _modalPrevFocus.focus) _modalPrevFocus.focus();
+  }, 150);
+}
+
+const modalOpen = () => modal().classList.contains("on") && !modal().classList.contains("out");
+
+/* Cierre por [data-close] en cualquier parte del modal. */
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-close]");
+  if (b && card().contains(b)) closeModal();
+});
+
+/* Foco atrapado dentro del contenedor activo (accesibilidad). */
+function trapTab(container, e) {
+  if (e.key !== "Tab") return;
+  const f = [...container.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+              .filter(el => !el.disabled && el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    if (dlgStack.length) { e.preventDefault(); dlgStack[dlgStack.length - 1].cancel(); }
+    else if (modalOpen()) { e.preventDefault(); closeModal(); }
+    return;
+  }
+  if (!dlgStack.length && modalOpen()) trapTab(card(), e);
+});
+
+/* ══════════════════════════════════════════════════════════
+   GATE — pantallas previas al inicio de sesión
+   ══════════════════════════════════════════════════════════ */
 function renderGate(html) {
   document.getElementById("app").innerHTML = `
     <div id="gate-wrap"><div id="gate">
-      <div class="brand">Puente</div>
+      <div class="mark">${ICO.bridge}</div>
       ${html}
     </div></div>`;
 }
 
-// ── arranque ──────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   ARRANQUE
+   ══════════════════════════════════════════════════════════ */
 async function boot() {
   try { LIMIT = (await api("/api/limits")).max_bytes; } catch {}
   const m = location.pathname.match(/^\/i\/([^/]+)$/);
@@ -210,7 +904,9 @@ async function boot() {
   catch { gate(); }
 }
 
-// ── invitaciones (alta rápida + recuperación + amistad) ─
+/* ══════════════════════════════════════════════════════════
+   INVITACIONES (alta rápida + recuperación + amistad)
+   ══════════════════════════════════════════════════════════ */
 async function inviteFlow(token) {
   let info;
   try { info = await api(`/api/invites/${token}`); }
@@ -227,7 +923,7 @@ async function inviteFlow(token) {
       <h2>Recuperar equipo</h2>
       <div class="sub">Este enlace te devuelve el acceso al equipo que lo generó, en este navegador.</div>
       <div class="actions">
-        <button class="mini go" onclick="doRedeem('${token}')">Recuperar acceso</button>
+        <button class="btn primary" onclick="doRedeem('${token}')">Recuperar acceso</button>
       </div>`);
     return;
   }
@@ -239,7 +935,7 @@ async function inviteFlow(token) {
       <div class="sub">Vas a poder aceptar o rechazar en el siguiente paso.</div>
       ${me ? "" : `<input id="nm" class="txt" placeholder="Torre, Notebook, VM...">`}
       <div class="actions">
-        <button class="mini go" onclick="doRedeem('${token}')">Continuar</button>
+        <button class="btn primary" onclick="doRedeem('${token}')">Continuar</button>
       </div>`);
     focusNameField(token);
     return;
@@ -249,9 +945,10 @@ async function inviteFlow(token) {
   renderGate(`
     <h2>Unirte a «${nombre}»</h2>
     ${me ? `<div class="sub">Entrarás como <b>${esc(me.name)}</b>.</div>`
-         : `<input id="nm" class="txt" placeholder="Torre, Notebook, VM...">`}
+         : `<div class="sub">Elige un nombre para identificar este navegador.</div>
+            <input id="nm" class="txt" placeholder="Torre, Notebook, VM...">`}
     <div class="actions">
-      <button class="mini go" onclick="doRedeem('${token}')">Unirme</button>
+      <button class="btn primary" onclick="doRedeem('${token}')">Unirme</button>
     </div>`);
   focusNameField(token);
 }
@@ -277,156 +974,149 @@ async function doRedeem(token) {
         <h2>Solicitud de ${esc(r.request.from_name)}</h2>
         <div class="sub">Si cierras esto sin elegir, la solicitud queda pendiente 7 días en «Amigos».</div>
         <div class="actions row">
-          <button class="mini go" onclick="answerFriendGate(${r.request.id}, 'accept')">Aceptar</button>
-          <button class="mini danger" onclick="answerFriendGate(${r.request.id}, 'reject')">Rechazar</button>
+          <button class="btn danger" onclick="answerFriendGate(${r.request.id}, 'reject')">Rechazar</button>
+          <button class="btn primary" onclick="answerFriendGate(${r.request.id}, 'accept')">Aceptar</button>
         </div>`);
       return;
     }
     render(); loadBridges(); pollNotices();
-  } catch (e) { alert(e.detail || "No se pudo canjear la invitación"); }
+  } catch (e) { toast(e.detail || "No se pudo canjear la invitación", "danger"); }
 }
 
 async function answerFriendGate(id, action) {
-  try { await api(`/api/friends/${id}/${action}`, { method: "POST" }); }
-  catch (e) { alert(e.detail || "No se pudo responder"); }
+  try { await api(`/api/friends/${id}/${action}`, { method: "POST" });
+        toast(action === "accept" ? "Solicitud aceptada." : "Solicitud rechazada.",
+              action === "accept" ? "ok" : "info"); }
+  catch (e) { toast(e.detail || "No se pudo responder", "danger"); }
   render(); loadBridges(); pollNotices();
 }
 
 function gate() {
+  // Si entraste por IP cruda, crear el equipo aquí y configurar el nombre
+  // DESPUÉS son dos sesiones distintas para el navegador (otro origen) y
+  // vas a tener que crear el equipo de nuevo al pasarte a "puente". Por
+  // eso el aviso va antes de crear el actor, no después (ADR-15).
+  const isIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(location.hostname);
   renderGate(`
     <h2>¿Qué equipo es este?</h2>
     <div class="sub">Elige un nombre para identificar este navegador.</div>
     <input id="nm" class="txt" placeholder="Torre, Notebook, VM...">
     <div class="actions">
-      <button class="mini go" onclick="join()">Entrar</button>
-    </div>`);
+      <button class="btn primary" onclick="join()">Entrar</button>
+    </div>
+    ${isIP ? `<div class="note">
+      Entraste con una IP (<b>${esc(location.hostname)}</b>). Si vas a usar este equipo seguido,
+      configura el acceso por nombre <b>antes</b> de crearlo — si lo haces después, vas a tener
+      que crearlo de nuevo.
+      <div style="margin-top:10px">
+        <button class="btn sm" onclick="showHostHelp()">${ICO.globe}<span>Configurar acceso por nombre</span></button>
+      </div>
+    </div>` : ""}`);
   const nm = document.getElementById("nm");
   nm.focus();
   nm.onkeydown = e => { if (e.key === "Enter") join(); };
-}
-
-// ── acceso por nombre en vez de IP ─────────────────────
-async function showHostHelp() {
-  let info;
-  try { info = await api("/api/hostentry"); }
-  catch { alert("No se pudo obtener la información del hub."); return; }
-
-  openModal(`
-    <h2>Acceder por nombre en vez de IP</h2>
-    <div class="empty" style="margin-bottom:4px">
-      Hazlo una vez en cada equipo nuevo (no hace falta en la torre, que ya se ve a sí misma).</div>
-
-    <h3>1. Agrega esta línea a tu archivo hosts</h3>
-    <code>${esc(info.line)}</code>
-    <div class="row" style="margin-top:8px"><span>Windows</span>
-      <a class="mini go" href="/api/hostentry/script?os=windows" download>Descargar .bat</a></div>
-    <div class="row"><span>Linux / macOS</span>
-      <a class="mini go" href="/api/hostentry/script?os=unix" download>Descargar .sh</a></div>
-    <div class="empty">
-      Windows: clic derecho sobre el archivo → <b>Ejecutar como administrador</b>.<br>
-      Linux/macOS: <code style="display:inline;padding:2px 6px;margin:0">sh agregar-puente.sh</code> (pedirá tu contraseña).</div>
-
-    <h3>2. Verifica</h3>
-    <div class="row"><span>Probar <code style="display:inline;padding:2px 6px;margin:0">http://${esc(info.hostname)}:${info.port}</code></span>
-      <span class="pill wait" id="hostCheckPill">— No probado</span></div>
-    <div style="margin-top:10px">
-      <button class="mini go" onclick="verifyHostEntry('${esc(info.hostname)}', ${info.port})">Comprobar</button></div>
-    <div id="hostCheck"></div>
-
-    <div style="text-align:right;margin-top:18px">
-      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
-}
-
-async function verifyHostEntry(hostname, port) {
-  const pill = document.getElementById("hostCheckPill");
-  const box = document.getElementById("hostCheck");
-  if (pill) { pill.className = "pill wait"; pill.textContent = "— Probando..."; }
-  box.innerHTML = "";
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2500);
-    const r = await fetch(`http://${hostname}:${port}/api/limits`, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (pill) { pill.className = "pill " + (r.ok ? "ok" : "bad"); pill.textContent = r.ok ? "✓ Aprobado" : "✕ Denegado"; }
-    box.innerHTML = r.ok
-      ? `<div class="empty" style="color:var(--ok)">Ya puedes usar http://${esc(hostname)}:${port}.</div>`
-      : `<div class="empty" style="color:var(--danger)">Respondió, pero con error. Revisa el paso 1.</div>`;
-  } catch {
-    if (pill) { pill.className = "pill bad"; pill.textContent = "✕ Denegado"; }
-    box.innerHTML = `<div class="empty" style="color:var(--danger)">
-      Todavía no resuelve desde este equipo. Confirma que ejecutaste el script AQUÍ, no en la torre, y prueba de nuevo.</div>`;
-  }
 }
 
 async function join() {
   const name = document.getElementById("nm").value.trim();
   if (!name) return;
   try { me = await api("/api/actor", { method:"POST", body: JSON.stringify({name}) }); }
-  catch (e) { alert(e.detail || "No se pudo entrar"); return; }
+  catch (e) { toast(e.detail || "No se pudo entrar", "danger"); return; }
   render(); loadBridges(); pollNotices();
 }
 
+/* ══════════════════════════════════════════════════════════
+   INTERFAZ PRINCIPAL
+   ══════════════════════════════════════════════════════════ */
 function render() {
   document.getElementById("app").innerHTML = `
     <div id="side">
-      <h1><span class="who">Puente · <b>${esc(me.name)}</b></span>
-        <button class="mini" onclick="showRecover()" title="Recuperar este equipo en otro navegador" style="padding:3px 7px">⟲</button></h1>
+      <div class="brand">
+        <div class="mark">${ICO.bridge}</div>
+        <div class="name">Puente</div>
+      </div>
+      <div class="sec-label">Puentes</div>
       <div id="bridges"></div>
       <div id="sidefoot">
-        <button class="sidebtn" onclick="newBridge()">+ Nuevo puente</button>
-        <button class="sidebtn ghost" onclick="showFriends()">Amigos</button>
-        <button class="sidebtn ghost" onclick="showTrash()">Papelera</button>
-        <button class="sidebtn ghost" onclick="showMaint()">Configuración</button>
+        <button class="sidebtn primary" onclick="newBridge()">${ICO.plus}<span>Nuevo puente</span></button>
+        <button class="sidebtn" onclick="showFriends()">${ICO.users}<span>Amigos</span></button>
+        <button class="sidebtn" onclick="showTrash()">${ICO.trash}<span>Papelera</span></button>
+        <button class="sidebtn" onclick="showMaint()">${ICO.gear}<span>Configuración</span></button>
+        <div class="whoami">
+          <div class="avatar">${esc((me.name || "?").trim().charAt(0))}</div>
+          <div class="t"><b>${esc(me.name)}</b><span>Este equipo</span></div>
+          <button class="iconbtn" onclick="showRecover()" title="Recuperar este equipo en otro navegador"
+                  style="width:28px;height:28px">${ICO.restore}</button>
+        </div>
       </div>
     </div>
     <div id="main">
-      <div id="drop">Suelta el archivo aquí</div>
+      <div id="drop">${ICO.upload}<span>Suelta el archivo para enviarlo</span></div>
       <div id="head" class="placeholder">Elige un puente</div>
       <div id="log"></div>
       <div id="prog"></div>
       <div id="err" class="err"></div>
       <div id="bar">
         <div id="composer">
-          <button id="clip" onclick="pick.click()" title="Adjuntar">+</button>
+          <button class="iconbtn" id="clip" onclick="pick.click()" title="Adjuntar archivo">${ICO.clip}</button>
           <input type="file" id="pick" style="display:none" onchange="pickFile(this)">
           <input id="input" placeholder="Escribe un mensaje" disabled>
+          <button class="iconbtn" id="send" onclick="sendFromInput()" title="Enviar" disabled>${ICO.send}</button>
         </div>
       </div>
     </div>`;
 
-  document.getElementById("input").onkeydown = e => {
-    if (e.key === "Enter" && e.target.value.trim()) {
-      send(e.target.value.trim()); e.target.value = "";
-    }
-  };
+  const input = document.getElementById("input"), send = document.getElementById("send");
+  input.oninput = () => { send.disabled = !input.value.trim() || !current; };
+  input.onkeydown = e => { if (e.key === "Enter") sendFromInput(); };
+
   const main = document.getElementById("main"), drop = document.getElementById("drop");
   main.ondragover = e => { e.preventDefault(); if (current) drop.classList.add("on"); };
   main.ondragleave = e => { if (e.target === main) drop.classList.remove("on"); };
   main.ondrop = e => { e.preventDefault(); drop.classList.remove("on");
     if (current && e.dataTransfer.files.length) upload(e.dataTransfer.files[0]); };
   document.onpaste = e => {
-    if (!current || document.getElementById("modal").classList.contains("on")) return;
+    if (!current || modalOpen() || dlgStack.length) return;
     const f = [...e.clipboardData.items].find(i => i.kind === "file");
     if (f) { e.preventDefault(); upload(f.getAsFile()); }
   };
 }
 
-// ── puentes ───────────────────────────────────────────
+function sendFromInput() {
+  const input = document.getElementById("input");
+  const v = input.value.trim();
+  if (!v || !current) return;
+  send(v); input.value = "";
+  document.getElementById("send").disabled = true;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PUENTES
+   ══════════════════════════════════════════════════════════ */
 async function loadBridges() {
-  const list = await api("/api/bridges");
   const el = document.getElementById("bridges");
-  el.innerHTML = list.length ? list.map(b => `
+  if (el && !el.children.length)
+    el.innerHTML = `<div class="sk a" style="margin:8px 10px"></div>
+                    <div class="sk b" style="margin:8px 10px"></div>`;
+  const list = await api("/api/bridges");
+  if (!document.getElementById("bridges")) return;
+  document.getElementById("bridges").innerHTML = list.length ? list.map(b => `
     <div class="bridge ${b.id===current?"active":""}" onclick="openBridge('${b.id}')">
-      <span>${esc(b.name)}</span>
-      <span class="gear" onclick="event.stopPropagation();showPanel('${b.id}')">⚙</span>
-    </div>`).join("") : `<div class="empty" style="padding:10px 12px">Sin puentes todavía</div>`;
+      <span class="dot"></span>
+      <span class="nm">${esc(b.name)}</span>
+      <button class="gear" title="Ajustes del puente"
+              onclick="event.stopPropagation();showPanel('${b.id}')">${ICO.gear}</button>
+    </div>`).join("")
+    : `<div class="empty left" style="padding:10px 12px">Sin puentes todavía.<br>Crea el primero abajo.</div>`;
   window._bridges = list;
 }
 
 async function newBridge() {
-  const name = prompt("Nombre del puente (vacío = automático)");
+  const name = await ui.prompt("Puedes dejarlo vacío y se le asigna un nombre automático.",
+    { title: "Nuevo puente", placeholder: "Nombre del puente", ok: "Crear" });
   if (name === null) return;
   await api("/api/bridges", { method:"POST", body: JSON.stringify({name: name.trim() || null}) });
+  toast("Puente creado.", "ok", 3500);
   loadBridges();
 }
 
@@ -435,17 +1125,23 @@ async function openBridge(id) {
   current = id; currentName = b ? b.name : "";
   const head = document.getElementById("head");
   head.textContent = currentName; head.classList.remove("placeholder");
-  document.getElementById("input").disabled = false;
+  const input = document.getElementById("input");
+  input.disabled = false;
+  document.getElementById("send").disabled = !input.value.trim();
   loadBridges();
   const msgs = await api(`/api/bridges/${id}/messages`);
   const log = document.getElementById("log");
   log.innerHTML = "";
+  if (!msgs.length)
+    log.innerHTML = `<div class="empty">Todavía no hay nada acá.<br>Escribe un mensaje o arrastra un archivo.</div>`;
   msgs.forEach(paint);
   connect(id);
 }
 
 function paint(m) {
   const log = document.getElementById("log");
+  const vacio = log.querySelector(".empty");
+  if (vacio) vacio.remove();
   const hora = new Date(m.created_at).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
   const div = document.createElement("div");
   div.className = "msg" + (m.actor_id === me.id ? " mine" : "");
@@ -454,9 +1150,12 @@ function paint(m) {
   if (m.kind === "file") {
     const a = document.createElement("a");
     a.className = "file"; a.href = `/api/blob/${m.blob_hash}`; a.setAttribute("download","");
-    const nm = document.createElement("span"); nm.textContent = m.filename;
+    const ic = document.createElement("span"); ic.className = "ic"; ic.innerHTML = ICO.download;
+    const tx = document.createElement("span");
+    const nm = document.createElement("span"); nm.className = "fn"; nm.textContent = m.filename;
     const sz = document.createElement("span"); sz.className = "sz"; sz.textContent = human(m.size);
-    a.append("⭳ ", nm, sz); body.appendChild(a);
+    tx.append(nm, document.createElement("br"), sz);
+    a.append(ic, tx); body.appendChild(a);
   } else body.textContent = m.body;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
@@ -472,13 +1171,16 @@ async function send(body) {
   paint(await api(`/api/bridges/${current}/messages`, {method:"POST", body:JSON.stringify({body})}));
 }
 
-// ── archivos ──────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   ARCHIVOS
+   ══════════════════════════════════════════════════════════ */
 function pickFile(el) { if (el.files.length) upload(el.files[0]); el.value = ""; }
 
 function upload(file) {
   const err = document.getElementById("err"); err.textContent = "";
   if (file.size > LIMIT) {
     err.textContent = `"${file.name}" pesa ${human(file.size)}. El máximo es ${human(LIMIT)}.`;
+    toast(`El archivo supera el límite de ${human(LIMIT)}.`, "danger");
     return;
   }
   const fd = new FormData(); fd.append("file", file);
@@ -486,74 +1188,97 @@ function upload(file) {
   xhr.upload.onprogress = e => { if (e.lengthComputable) prog.style.width = (e.loaded/e.total*100)+"%"; };
   xhr.onload = () => { prog.style.width = "0";
     if (xhr.status === 200) paint(JSON.parse(xhr.responseText));
-    else err.textContent = "Error al subir: " + xhr.status; };
-  xhr.onerror = () => { prog.style.width = "0"; err.textContent = "Error de red"; };
+    else { err.textContent = "Error al subir: " + xhr.status;
+           toast("No se pudo subir el archivo (error " + xhr.status + ").", "danger"); } };
+  xhr.onerror = () => { prog.style.width = "0"; err.textContent = "Error de red";
+                        toast("Error de red al subir el archivo.", "danger"); };
   xhr.open("POST", `/api/bridges/${current}/files`); xhr.send(fd);
 }
 
-// ── modal ─────────────────────────────────────────────
-const modal = () => document.getElementById("modal");
-const card = () => document.getElementById("card");
-function closeModal() { modal().classList.remove("on"); }
-function openModal(html) { card().innerHTML = html; modal().classList.add("on"); }
-
-// ── panel del puente ──────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   PANEL DEL PUENTE
+   ══════════════════════════════════════════════════════════ */
 async function showPanel(id) {
-  const p = await api(`/api/bridges/${id}/panel`);
+  openModalLoading("Puente");
+  let p;
+  try { p = await api(`/api/bridges/${id}/panel`); }
+  catch (e) { closeModal(); toast(e.detail || "No se pudo abrir el puente", "danger"); return; }
   const yo = p.owner_id === me.id;
 
   const miembros = p.members.map(m => `
     <div class="row">
       <span>${esc(m.name)}${m.role==="owner"?'<span class="tag">dueño</span>':""}
-        ${m.id===me.id?'<span class="tag">tú</span>':""}</span>
-      <span>
-        ${yo && m.id!==p.owner_id ? `<button class="mini" onclick="doTransfer('${id}','${m.id}','${esc(m.name)}')">Hacer dueño</button>` : ""}
+        ${m.id===me.id?'<span class="tag me">tú</span>':""}</span>
+      <span class="actions">
+        ${yo && m.id!==p.owner_id ? `<button class="btn sm" onclick="doTransfer('${id}','${m.id}','${jsArg(m.name)}')">Hacer dueño</button>` : ""}
         ${(yo && m.id!==p.owner_id) || (m.id===me.id && !yo)
-          ? `<button class="mini danger" onclick="dropMember('${id}','${m.id}',${m.id===me.id})">${m.id===me.id?"Salir":"Expulsar"}</button>` : ""}
+          ? `<button class="btn sm danger" onclick="dropMember('${id}','${m.id}',${m.id===me.id})">${m.id===me.id?"Salir":"Expulsar"}</button>` : ""}
       </span>
     </div>`).join("");
 
   const puedeAgregar = yo && p.members.length < 5 && p.available.length;
   const agregar = puedeAgregar ? `
-    <h3>Agregar equipo</h3>
-    <div style="display:flex;gap:8px">
-      <select id="pickActor" style="flex:1">
-        ${p.available.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join("")}
-      </select>
-      <button class="mini go" onclick="addMember('${id}')">Agregar</button>
-    </div>` : yo ? `<h3>Agregar equipo</h3><div class="empty">${
-      p.members.length >= 5 ? "Tope de 5 equipos alcanzado."
-      : 'No tienes amigos disponibles para agregar. Agrégalos primero desde <b>Amigos</b>, o usa el enlace de invitación de abajo para alguien nuevo.'}</div>` : "";
+    <div class="panel">
+      <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+        <span class="ph-t">Agregar equipo<small>Solo aparecen tus amigos aceptados</small></span></div>
+      <div class="panel-b">
+        <div style="display:flex;gap:8px;padding:10px 0">
+          <select id="pickActor" style="flex:1">
+            ${p.available.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join("")}
+          </select>
+          <button class="btn primary" onclick="addMember('${id}')">Agregar</button>
+        </div>
+      </div>
+    </div>` : yo ? `
+    <div class="panel">
+      <div class="panel-h"><span class="ph-ic">${ICO.users}</span><span class="ph-t">Agregar equipo</span></div>
+      <div class="panel-b"><div class="hint">${
+        p.members.length >= 5 ? "Tope de 5 equipos alcanzado."
+        : 'No tienes amigos disponibles para agregar. Agrégalos primero desde <b>Amigos</b>, o usa el enlace de invitación de abajo para alguien nuevo.'}</div></div>
+    </div>` : "";
 
-  openModal(`
-    <h2>${esc(p.name)}</h2>
-    <div class="empty">${p.messages} mensajes · ${human(p.bytes)} en archivos</div>
-    <h3>Equipos (${p.members.length}/5)</h3>${miembros}
-    ${agregar}
-    ${yo ? `
-      <h3>Invitar</h3>
-      <div class="row"><span>Enlace de un solo uso, vence en 15 min</span>
-        <button class="mini go" onclick="makeInvite('${id}')">Generar</button></div>
-      <div id="inviteBox"></div>
-      <h3>Administración</h3>
-      <div class="row"><span>Renombrar el puente</span>
-        <button class="mini" onclick="doRename('${id}','${esc(p.manual_name||"")}')">Renombrar</button></div>
-      <div class="row"><span>Mover a la papelera<span class="tag">recuperable 7 días</span></span>
-        <button class="mini danger" onclick="toTrash('${id}','${esc(p.name)}')">Eliminar</button></div>` : ""}
-    <div style="text-align:right;margin-top:18px">
-      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+  fillModal({
+    title: esc(p.name),
+    sub: `${p.messages} mensajes · ${human(p.bytes)} en archivos`,
+    body: `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+          <span class="ph-t">Equipos<small>${p.members.length} de 5</small></span></div>
+        <div class="panel-b">${miembros}</div>
+      </div>
+      ${agregar}
+      ${yo ? `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.key}</span>
+          <span class="ph-t">Invitar a alguien nuevo<small>Enlace de un solo uso, vence en 15 minutos</small></span></div>
+        <div class="panel-b">
+          <div class="row"><span class="lbl">Generar enlace + QR</span>
+            <button class="btn primary sm" onclick="makeInvite('${id}')">Generar</button></div>
+          <div id="inviteBox"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.gear}</span><span class="ph-t">Administración</span></div>
+        <div class="panel-b">
+          <div class="row"><span class="lbl">Renombrar el puente</span>
+            <button class="btn sm" onclick="doRename('${id}','${jsArg(p.manual_name||"")}')">Renombrar</button></div>
+          <div class="row"><span class="lbl">Mover a la papelera<small>Recuperable durante 7 días</small></span>
+            <button class="btn sm danger" onclick="toTrash('${id}','${jsArg(p.name)}')">Eliminar</button></div>
+        </div>
+      </div>` : ""}`,
+    foot: `<button class="btn" data-close>Cerrar</button>`,
+  });
 }
 
 function inviteBoxHtml(url, token, footNote) {
   return `
-    <div style="margin:8px 0">
+    <div style="padding:6px 0 4px">
       <code>${esc(url)}</code>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <button class="mini" onclick="navigator.clipboard.writeText('${url}')">Copiar enlace</button>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap">
+        <button class="btn sm" onclick="copyText('${url}', this)">${ICO.copy}<span>Copiar enlace</span></button>
         ${footNote ? `<span class="tag">${footNote}</span>` : ""}
       </div>
-      <img src="/api/invites/${token}/qr.svg" alt="QR"
-           style="margin-top:10px;background:#fff;padding:8px;border-radius:10px;width:176px;display:block">
+      <img src="/api/invites/${token}/qr.svg" alt="Código QR del enlace" class="qr">
     </div>`;
 }
 
@@ -562,60 +1287,82 @@ async function makeInvite(id) {
   try {
     const r = await api(`/api/bridges/${id}/invites`, { method: "POST" });
     box.innerHTML = inviteBoxHtml(`${location.origin}${r.path}`, r.token, "vence en 15 min o al primer uso");
-  } catch (e) { alert(e.detail || "No se pudo generar la invitación"); }
+  } catch (e) { toast(e.detail || "No se pudo generar la invitación", "danger"); }
 }
 
 async function showRecover() {
   try {
     const r = await api("/api/actor/reclaim-invite", { method: "POST" });
-    openModal(`
-      <h2>Recuperar este equipo</h2>
-      <div class="empty" style="margin-bottom:4px">
-        Abre este enlace en el navegador donde perdiste la sesión. Un solo uso, vence en 15 minutos.</div>
-      ${inviteBoxHtml(`${location.origin}${r.path}`, r.token)}
-      <div style="text-align:right;margin-top:18px">
-        <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
-  } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
+    openModal({
+      title: "Recuperar este equipo",
+      sub: "Un solo uso, vence en 15 minutos",
+      body: `<div class="hint">Abre este enlace en el navegador donde perdiste la sesión.
+               Al usarlo, la sesión actual de este equipo se renueva por seguridad.</div>
+             ${inviteBoxHtml(`${location.origin}${r.path}`, r.token)}`,
+      foot: `<button class="btn" data-close>Cerrar</button>`,
+    });
+  } catch (e) { toast(e.detail || "No se pudo generar el enlace", "danger"); }
 }
 
-// ── amigos ────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   AMIGOS
+   ══════════════════════════════════════════════════════════ */
 async function showFriends() {
-  const f = await api("/api/friends");
+  openModalLoading("Amigos");
+  let f;
+  try { f = await api("/api/friends"); }
+  catch (e) { closeModal(); toast(e.detail || "No se pudo cargar la lista de amigos", "danger"); return; }
 
   const amigos = f.friends.length ? f.friends.map(a => `
     <div class="row"><span>${esc(a.name)}</span>
-      <button class="mini danger" onclick="unfriend('${a.id}','${esc(a.name)}')">Quitar</button></div>`
-  ).join("") : `<div class="empty">Todavía no tienes amigos agregados.</div>`;
+      <button class="btn sm danger" onclick="unfriend('${a.id}','${jsArg(a.name)}')">Quitar</button></div>`
+  ).join("") : `<div class="hint">Todavía no tienes amigos agregados.</div>`;
 
   const entrantes = f.incoming.length ? f.incoming.map(r => `
     <div class="row"><span>${esc(r.name)}</span>
-      <span>
-        <button class="mini go" onclick="respondFriend(${r.id},'accept')">Aceptar</button>
-        <button class="mini danger" onclick="respondFriend(${r.id},'reject')">Rechazar</button>
+      <span class="actions">
+        <button class="btn sm danger" onclick="respondFriend(${r.id},'reject')">Rechazar</button>
+        <button class="btn sm primary" onclick="respondFriend(${r.id},'accept')">Aceptar</button>
       </span></div>`
   ).join("") : "";
 
   const salientes = f.outgoing.length ? f.outgoing.map(r => `
     <div class="row"><span>${esc(r.name)}<span class="tag">esperando respuesta</span></span>
-      <button class="mini" onclick="respondFriend(${r.id},'reject')">Cancelar</button></div>`
+      <button class="btn sm" onclick="respondFriend(${r.id},'reject')">Cancelar</button></div>`
   ).join("") : "";
 
-  openModal(`
-    <h2>Amigos</h2>
-    <div class="empty" style="margin-bottom:4px">Solo puedes agregar a un puente a alguien que ya es tu amigo.</div>
-
-    <h3>Agregar amigo</h3>
-    <div class="row"><span>Enlace de un solo uso, vence en 7 días; la solicitud espera 7 días más</span>
-      <button class="mini go" onclick="makeFriendInvite()">Generar</button></div>
-    <div id="friendInviteBox"></div>
-
-    ${entrantes ? `<h3>Solicitudes recibidas</h3>${entrantes}` : ""}
-    ${salientes ? `<h3>Solicitudes enviadas</h3>${salientes}` : ""}
-
-    <h3>Tus amigos (${f.friends.length})</h3>${amigos}
-
-    <div style="text-align:right;margin-top:18px">
-      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+  fillModal({
+    title: "Amigos",
+    sub: "Solo puedes agregar a un puente a alguien que ya es tu amigo",
+    body: `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.key}</span>
+          <span class="ph-t">Agregar amigo<small>Enlace de un solo uso, vence en 7 días</small></span></div>
+        <div class="panel-b">
+          <div class="row"><span class="lbl">Generar enlace + QR<small>La solicitud espera 7 días más</small></span>
+            <button class="btn primary sm" onclick="makeFriendInvite()">Generar</button></div>
+          <div id="friendInviteBox"></div>
+        </div>
+      </div>
+      ${entrantes ? `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+          <span class="ph-t">Solicitudes recibidas<small>${f.incoming.length} pendiente(s)</small></span></div>
+        <div class="panel-b">${entrantes}</div>
+      </div>` : ""}
+      ${salientes ? `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+          <span class="ph-t">Solicitudes enviadas<small>${f.outgoing.length} en espera</small></span></div>
+        <div class="panel-b">${salientes}</div>
+      </div>` : ""}
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+          <span class="ph-t">Tus amigos<small>${f.friends.length} equipo(s)</small></span></div>
+        <div class="panel-b">${amigos}</div>
+      </div>`,
+    foot: `<button class="btn" data-close>Cerrar</button>`,
+  });
 }
 
 async function makeFriendInvite() {
@@ -623,192 +1370,333 @@ async function makeFriendInvite() {
   try {
     const r = await api("/api/actor/friend-invite", { method: "POST" });
     box.innerHTML = inviteBoxHtml(`${location.origin}${r.path}`, r.token);
-  } catch (e) { alert(e.detail || "No se pudo generar el enlace"); }
+  } catch (e) { toast(e.detail || "No se pudo generar el enlace", "danger"); }
 }
 
 async function respondFriend(id, action) {
-  try { await api(`/api/friends/${id}/${action}`, { method: "POST" }); showFriends(); }
-  catch (e) { alert(e.detail || "No se pudo responder"); }
+  try { await api(`/api/friends/${id}/${action}`, { method: "POST" });
+        toast(action === "accept" ? "Ahora son amigos." : "Solicitud descartada.",
+              action === "accept" ? "ok" : "info", 3500);
+        showFriends(); }
+  catch (e) { toast(e.detail || "No se pudo responder", "danger"); }
 }
 
 async function unfriend(id, name) {
-  if (!confirm(`¿Quitar a "${name}" de tus amigos?`)) return;
-  try { await api(`/api/friends/${id}`, { method: "DELETE" }); showFriends(); }
-  catch (e) { alert(e.detail || "No se pudo quitar"); }
+  if (!await ui.confirm(`Dejarán de poder agregarse a puentes entre ustedes.`,
+      { title: `¿Quitar a "${name}" de tus amigos?`, ok: "Quitar", danger: true })) return;
+  try { await api(`/api/friends/${id}`, { method: "DELETE" }); toast("Amistad eliminada.", "info", 3500); showFriends(); }
+  catch (e) { toast(e.detail || "No se pudo quitar", "danger"); }
 }
 
 async function addMember(id) {
   const aid = document.getElementById("pickActor").value;
   try { await api(`/api/bridges/${id}/actors/${aid}`, {method:"POST"});
+        toast("Equipo agregado al puente.", "ok", 3500);
         showPanel(id); loadBridges(); }
-  catch (e) { alert(e.detail || "No se pudo agregar"); }
+  catch (e) { toast(e.detail || "No se pudo agregar", "danger"); }
 }
 
 async function dropMember(id, aid, propio) {
-  if (!confirm(propio ? "¿Salir de este puente?" : "¿Quitar a este equipo del puente?")) return;
+  const ok = propio
+    ? await ui.confirm("Dejarás de ver sus mensajes y archivos.",
+        { title: "¿Salir de este puente?", ok: "Salir", danger: true })
+    : await ui.confirm("Dejará de ver los mensajes nuevos de este puente.",
+        { title: "¿Quitar a este equipo del puente?", ok: "Expulsar", danger: true });
+  if (!ok) return;
   try {
     await api(`/api/bridges/${id}/members/${aid}`, {method:"DELETE"});
     if (propio) { closeModal(); current = null;
       const head = document.getElementById("head");
       head.textContent = "Elige un puente"; head.classList.add("placeholder");
       document.getElementById("log").innerHTML = "";
-      document.getElementById("input").disabled = true; }
-    else showPanel(id);
+      document.getElementById("input").disabled = true;
+      document.getElementById("send").disabled = true;
+      toast("Saliste del puente.", "info", 3500); }
+    else { showPanel(id); toast("Equipo expulsado.", "info", 3500); }
     loadBridges();
-  } catch (e) { alert(e.detail || "No se pudo"); }
+  } catch (e) { toast(e.detail || "No se pudo", "danger"); }
 }
 
 async function doTransfer(id, aid, name) {
-  if (!confirm(`Transferir la propiedad a "${name}"?\n\nPerderás el control del puente.`)) return;
+  if (!await ui.confirm(`Perderás el control del puente: ya no podrás renombrarlo, invitar ni eliminarlo.`,
+      { title: `¿Transferir la propiedad a "${name}"?`, ok: "Transferir", danger: true })) return;
   try { await api(`/api/bridges/${id}/transfer`, {method:"POST", body:JSON.stringify({actor_id:aid})});
+        toast(`"${name}" ahora es el dueño del puente.`, "ok");
         showPanel(id); loadBridges(); }
-  catch (e) { alert(e.detail || "No se pudo transferir"); }
+  catch (e) { toast(e.detail || "No se pudo transferir", "danger"); }
 }
 
 async function doRename(id, actual) {
-  const n = prompt("Nuevo nombre (vacío = automático)", actual);
+  const n = await ui.prompt("Déjalo vacío para volver al nombre automático.",
+    { title: "Renombrar puente", value: actual, placeholder: "Nombre del puente", ok: "Guardar" });
   if (n === null) return;
   await api(`/api/bridges/${id}`, {method:"PATCH", body:JSON.stringify({name:n.trim()||null})});
+  toast("Nombre actualizado.", "ok", 3500);
   showPanel(id); loadBridges();
   if (current === id) { const b = (window._bridges||[]).find(x=>x.id===id);
     if (b) document.getElementById("head").textContent = b.name; }
 }
 
 async function toTrash(id, name) {
-  const r = prompt(`Escribe el nombre del puente para confirmar:\n\n${name}`);
+  const r = await ui.prompt(`Se puede recuperar durante 7 días desde la papelera.\nEscribe el nombre del puente para confirmar: ${name}`,
+    { title: "Eliminar puente", placeholder: name, ok: "Eliminar", danger: true });
   if (r === null) return;
-  if (r.trim() !== name) { alert("El nombre no coincide. No se eliminó nada."); return; }
+  if (r.trim() !== name) { toast("El nombre no coincide. No se eliminó nada.", "warn"); return; }
   await api(`/api/bridges/${id}`, {method:"DELETE"});
   closeModal();
   if (current === id) { current = null;
     const head = document.getElementById("head");
     head.textContent = "Elige un puente"; head.classList.add("placeholder");
     document.getElementById("log").innerHTML = "";
-    document.getElementById("input").disabled = true; if (ws) ws.close(); }
+    document.getElementById("input").disabled = true;
+    document.getElementById("send").disabled = true; if (ws) ws.close(); }
+  toast(`"${name}" se movió a la papelera.`, "info");
   loadBridges();
 }
 
-// ── papelera ──────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   PAPELERA
+   ══════════════════════════════════════════════════════════ */
 async function showTrash() {
-  const items = await api("/api/trash");
-  openModal(`
-    <h2>Papelera</h2>
-    <div class="empty">Los puentes se eliminan solos a los 7 días.</div>
-    ${items.length ? items.map(t => `
-      <div class="row">
-        <span>${esc(t.name)}<span class="tag">hasta ${new Date(t.purge_at).toLocaleDateString("es-CL")}</span></span>
-        <span>
-          <button class="mini" onclick="restore('${t.id}')">Restaurar</button>
-          <button class="mini danger" onclick="purge('${t.id}','${esc(t.name)}')">Borrar ya</button>
-        </span>
-      </div>`).join("") : `<div class="empty">La papelera está vacía.</div>`}
-    <div style="text-align:right;margin-top:18px">
-      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+  openModalLoading("Papelera");
+  let items;
+  try { items = await api("/api/trash"); }
+  catch (e) { closeModal(); toast(e.detail || "No se pudo abrir la papelera", "danger"); return; }
+  fillModal({
+    title: "Papelera",
+    sub: "Los puentes se eliminan solos a los 7 días",
+    body: items.length ? `
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.trash}</span>
+          <span class="ph-t">Puentes eliminados<small>${items.length} recuperable(s)</small></span></div>
+        <div class="panel-b">${items.map(t => `
+          <div class="row">
+            <span class="lbl">${esc(t.name)}<small>Se borra solo el ${new Date(t.purge_at).toLocaleDateString("es-CL")}</small></span>
+            <span class="actions">
+              <button class="btn sm" onclick="restore('${t.id}')">Restaurar</button>
+              <button class="btn sm danger" onclick="purge('${t.id}','${jsArg(t.name)}')">Borrar ya</button>
+            </span>
+          </div>`).join("")}</div>
+      </div>`
+      : `<div class="empty">La papelera está vacía.</div>`,
+    foot: `<button class="btn" data-close>Cerrar</button>`,
+  });
 }
 
 async function restore(id) {
   await api(`/api/trash/${id}/restore`, {method:"POST"});
+  toast("Puente restaurado.", "ok", 3500);
   showTrash(); loadBridges();
 }
 
 async function purge(id, name) {
-  if (!confirm(`Borrar "${name}" definitivamente?\n\nSe eliminan sus mensajes y archivos. No hay vuelta atrás.`)) return;
+  if (!await ui.confirm("Se eliminan sus mensajes y archivos. No hay vuelta atrás.",
+      { title: `¿Borrar "${name}" definitivamente?`, ok: "Borrar para siempre", danger: true })) return;
   const r = await api(`/api/trash/${id}`, {method:"DELETE"});
-  alert(`Eliminado.\n${r.blobs_borrados} archivo(s), ${human(r.bytes_liberados)} liberados.`);
+  toast(`Eliminado. ${r.blobs_borrados} archivo(s), ${human(r.bytes_liberados)} liberados.`, "ok");
   showTrash();
 }
 
-// ── mantenimiento ─────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   CONFIGURACIÓN — UNA sola ventana.
+   Todos los estados comprobables (firewall, acceso por nombre)
+   viven acá, al mismo nivel y con la misma forma:
+   título · pill de estado · explicación · acción.
+   Nada abre una segunda ventana encima.
+   ══════════════════════════════════════════════════════════ */
 async function showMaint() {
-  const [m, f] = await Promise.all([api("/api/maintenance"), api("/api/firewall")]);
-  openModal(`
-    <h2>Configuración</h2>
-    <h3>Almacenamiento</h3>
-    <div class="row"><span>Archivos guardados</span><span>${m.blobs_total} · ${human(m.bytes_total)}</span></div>
-    <div class="row"><span>Basura recuperable</span><span>${m.blobs_huerfanos} · ${human(m.bytes_recuperables)}</span></div>
-    <div class="row"><span>Liberar espacio no usado</span>
-      <button class="mini go" onclick="doClean()">Limpiar</button></div>
+  openModalLoading("Configuración");
 
-    <h3>Equipos sin uso</h3>
-    ${m.actores_huerfanos.length ? m.actores_huerfanos.map(a => `
-      <div class="row"><span>${esc(a.name)}<span class="tag">sin puentes ni mensajes</span></span>
-        <button class="mini danger" onclick="dropActor('${a.id}')">Eliminar</button></div>`).join("")
-      : `<div class="empty">No hay equipos sin uso.</div>`}
+  // Se piden en paralelo; si "hostentry" falla, el bloque igual se dibuja degradado.
+  let m, f, h;
+  try {
+    [m, f, h] = await Promise.all([
+      api("/api/maintenance"),
+      api("/api/firewall"),
+      api("/api/hostentry").catch(() => null),
+    ]);
+  } catch (e) { closeModal(); toast(e.detail || "No se pudo cargar la configuración", "danger"); return; }
 
-    <h3>Firewall (${esc(f.backend || "no detectado")})</h3>
-    <div class="row"><span>Regla del puerto 8080</span>
-      <span class="pill ${f.rule_exists ? "ok" : f.action_needed ? "bad" : "wait"}">
-        ${f.rule_exists ? "✓ Activa" : f.action_needed ? "✕ Falta" : "— No hace falta"}</span></div>
-    ${f.note ? `<div class="empty">${esc(f.note)}</div>` : ""}
-    ${f.command ? `<div class="empty">Comando que se ejecutará:<code>${esc(f.command)}</code></div>` : ""}
-    ${f.action_needed ? `<div style="margin-top:10px">
-      <button class="mini go" onclick="applyFw()">Aplicar (pedirá permisos)</button></div>` : ""}
+  const tema = getTheme();
+  const segBtn = (v, l) => `<button data-theme="${v}" class="${tema===v?"on":""}" onclick="setTheme('${v}')">${l}</button>`;
 
-    <h3>Acceso por nombre</h3>
-    <div class="row"><span>En este equipo</span>
-      <span class="pill wait" id="hostPill">— Comprobando...</span></div>
-    <div style="margin-top:10px">
-      <button class="mini go" onclick="showHostHelp()">Ver instrucciones</button></div>
+  fillModal({
+    title: "Configuración",
+    sub: "Todo lo del hub en un solo lugar",
+    body: `
+      <!-- ── Apariencia ─────────────────────────────────── -->
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.paint}</span>
+          <span class="ph-t">Apariencia<small>Se guarda en este navegador</small></span></div>
+        <div class="panel-b">
+          <div class="row"><span class="lbl">Tema<small>«Automático» sigue la preferencia del sistema</small></span>
+            <span class="seg" id="themeSeg">
+              ${segBtn("auto","Automático")}${segBtn("light","Claro")}${segBtn("dark","Oscuro")}
+            </span></div>
+        </div>
+      </div>
 
-    <div style="text-align:right;margin-top:18px">
-      <button class="mini" onclick="closeModal()">Cerrar</button></div>`);
+      <!-- ── Almacenamiento ─────────────────────────────── -->
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.disk}</span>
+          <span class="ph-t">Almacenamiento<small>${m.blobs_total} archivo(s) · ${human(m.bytes_total)}</small></span></div>
+        <div class="panel-b">
+          <div class="row"><span class="lbl">Archivos guardados</span><span>${m.blobs_total} · ${human(m.bytes_total)}</span></div>
+          <div class="row"><span class="lbl">Basura recuperable<small>Contenido sin ningún mensaje que lo apunte</small></span>
+            <span>${m.blobs_huerfanos} · ${human(m.bytes_recuperables)}</span></div>
+          <div class="row"><span class="lbl">Liberar espacio no usado</span>
+            <button class="btn primary sm" onclick="doClean()">Limpiar</button></div>
+        </div>
+      </div>
+
+      <!-- ── Equipos sin uso ────────────────────────────── -->
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.users}</span>
+          <span class="ph-t">Equipos sin uso<small>${m.actores_huerfanos.length} sin puentes ni mensajes</small></span></div>
+        <div class="panel-b">
+          ${m.actores_huerfanos.length ? m.actores_huerfanos.map(a => `
+            <div class="row"><span class="lbl">${esc(a.name)}<small>Sin puentes ni mensajes</small></span>
+              <button class="btn sm danger" onclick="dropActor('${a.id}')">Eliminar</button></div>`).join("")
+            : `<div class="hint">No hay equipos sin uso.</div>`}
+        </div>
+      </div>
+
+      <!-- ── Firewall — CHECK 1 ─────────────────────────── -->
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.shield}</span>
+          <span class="ph-t">Firewall<small>${esc(f.backend || "no detectado")}</small></span>
+          <span class="pill ${f.rule_exists ? "ok" : f.action_needed ? "bad" : "wait"}">
+            ${f.rule_exists ? ICO.check + "Activa" : f.action_needed ? ICO.x + "Falta" : ICO.dash + "No hace falta"}</span>
+        </div>
+        <div class="panel-b">
+          <div class="hint">Permite que los otros equipos de la red lleguen al hub por el puerto configurado.</div>
+          ${f.note ? `<div class="hint">${esc(f.note)}</div>` : ""}
+          ${f.command ? `<div class="hint">Comando que se ejecutará:<code>${esc(f.command)}</code></div>` : ""}
+          ${f.action_needed ? `<div class="row"><span class="lbl">Aplicar la regla<small>Pedirá permisos de administrador</small></span>
+            <button class="btn primary sm" onclick="applyFw()">Aplicar</button></div>` : ""}
+        </div>
+      </div>
+
+      <!-- ── Acceso por nombre — CHECK 2, mismo nivel ───── -->
+      <div class="panel">
+        <div class="panel-h"><span class="ph-ic">${ICO.globe}</span>
+          <span class="ph-t">Acceso por nombre<small>${h ? `http://${esc(h.hostname)}:${h.port}` : "no disponible"}</small></span>
+          <span class="pill wait" id="hostPill"><span class="spin">${ICO.spinner}</span>Comprobando</span>
+        </div>
+        <div class="panel-b">
+          ${h ? hostEntryBody(h) : `<div class="hint">No se pudo obtener la información del hub.</div>`}
+        </div>
+      </div>`,
+    foot: `<button class="btn primary" data-close>Listo</button>`,
+  });
   checkHostPill();
 }
 
+/* Cuerpo del bloque "acceso por nombre". Se usa TAL CUAL dentro de
+   Configuración y, sin modal anidado, también en la pantalla previa
+   al login (donde todavía no existe la ventana de configuración). */
+function hostEntryBody(info) {
+  return `
+    <div class="hint">Permite entrar escribiendo <b>http://${esc(info.hostname)}:${info.port}</b>
+      en vez de la IP. Se hace una vez en cada equipo nuevo (no hace falta en el equipo donde corre el hub).</div>
+    <div class="row"><span class="lbl">1. Línea para el archivo <code class="inline">hosts</code></span></div>
+    <code>${esc(info.line)}</code>
+    <div class="row"><span class="lbl">Windows<small>Clic derecho → Ejecutar como administrador</small></span>
+      <a class="btn sm primary" href="/api/hostentry/script?os=windows" download>${ICO.download}<span>Descargar .bat</span></a></div>
+    <div class="row"><span class="lbl">Linux / macOS<small>sh agregar-puente.sh — pedirá tu contraseña</small></span>
+      <a class="btn sm primary" href="/api/hostentry/script?os=unix" download>${ICO.download}<span>Descargar .sh</span></a></div>
+    <div class="row"><span class="lbl">2. Verificar desde este equipo<small>Prueba si el nombre ya resuelve</small></span>
+      <button class="btn sm" onclick="verifyHostEntry('${jsArg(info.hostname)}', ${info.port})">Comprobar</button></div>
+    <div id="hostCheck"></div>`;
+}
+
+/* Pantalla previa al login: ahí no existe la ventana de Configuración,
+   así que este es el único caso en que el bloque se muestra suelto. */
+async function showHostHelp() {
+  openModalLoading("Acceso por nombre");
+  let info;
+  try { info = await api("/api/hostentry"); }
+  catch { closeModal(); toast("No se pudo obtener la información del hub.", "danger"); return; }
+  fillModal({
+    title: "Acceder por nombre en vez de IP",
+    sub: `http://${esc(info.hostname)}:${info.port}`,
+    body: `<div class="panel"><div class="panel-h">
+             <span class="ph-ic">${ICO.globe}</span><span class="ph-t">Configurar en este equipo</span>
+             <span class="pill wait" id="hostPill"><span class="spin">${ICO.spinner}</span>Comprobando</span>
+           </div><div class="panel-b">${hostEntryBody(info)}</div></div>`,
+    foot: `<button class="btn" data-close>Cerrar</button>`,
+  });
+  checkHostPill();
+}
+
+/* Comprobación de alcance por nombre. Ojo: el fetch cruza de origen
+   (IP → hostname) y por eso el hub expone CORS solo-GET (ver ADR-15). */
+async function probeHost(hostname, port, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { const r = await fetch(`http://${hostname}:${port}/api/limits`, { signal: ctrl.signal });
+        return r.ok ? "ok" : "bad"; }
+  catch { return "bad"; }
+  finally { clearTimeout(t); }
+}
+
+function setHostPill(state) {
+  const p = document.getElementById("hostPill");
+  if (!p) return;
+  if (state === "wait") { p.className = "pill wait"; p.innerHTML = `<span class="spin">${ICO.spinner}</span>Probando`; }
+  else if (state === "ok") { p.className = "pill ok"; p.innerHTML = ICO.check + "Aprobado"; }
+  else { p.className = "pill bad"; p.innerHTML = ICO.x + "Denegado"; }
+}
+
 async function checkHostPill() {
-  const pill = document.getElementById("hostPill");
-  if (!pill) return;
+  if (!document.getElementById("hostPill")) return;
   let info;
   try { info = await api("/api/hostentry"); } catch { return; }
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2000);
-    const r = await fetch(`http://${info.hostname}:${info.port}/api/limits`, { signal: ctrl.signal });
-    clearTimeout(t);
-    const p = document.getElementById("hostPill");
-    if (!p) return;
-    p.className = "pill " + (r.ok ? "ok" : "bad");
-    p.textContent = r.ok ? "✓ Aprobado" : "✕ Denegado";
-  } catch {
-    const p = document.getElementById("hostPill");
-    if (!p) return;
-    p.className = "pill bad";
-    p.textContent = "✕ Denegado";
-  }
+  setHostPill(await probeHost(info.hostname, info.port, 2000));
+}
+
+async function verifyHostEntry(hostname, port) {
+  const box = document.getElementById("hostCheck");
+  setHostPill("wait");
+  if (box) box.innerHTML = `<div class="hint">Probando…</div>`;
+  const r = await probeHost(hostname, port, 2500);
+  setHostPill(r);
+  if (!box) return;
+  box.innerHTML = r === "ok"
+    ? `<div class="hint" style="color:var(--ok)">Listo: ya puedes usar <b>http://${esc(hostname)}:${port}</b> en este equipo.</div>`
+    : `<div class="hint" style="color:var(--danger)">Todavía no resuelve desde este equipo.
+         Confirma que ejecutaste el script <b>aquí</b>, no en el equipo del hub, y prueba de nuevo.</div>`;
 }
 
 async function doClean() {
   const r = await api("/api/maintenance/clean", {method:"POST"});
-  alert(`${r.blobs_borrados} archivo(s) eliminados, ${human(r.bytes_liberados)} liberados.`
-        + (r.temporales ? `\n${r.temporales} temporal(es) limpiados.` : ""));
+  toast(`${r.blobs_borrados} archivo(s) eliminados, ${human(r.bytes_liberados)} liberados.`
+        + (r.temporales ? `\n${r.temporales} temporal(es) limpiados.` : ""), "ok");
   showMaint();
 }
 
 async function dropActor(id) {
-  if (!confirm("¿Eliminar este equipo?")) return;
-  try { await api(`/api/actors/${id}`, {method:"DELETE"}); showMaint(); }
-  catch (e) { alert(e.detail || "No se pudo"); }
+  if (!await ui.confirm("No tiene puentes ni mensajes, así que no se pierde contenido.",
+      { title: "¿Eliminar este equipo?", ok: "Eliminar", danger: true })) return;
+  try { await api(`/api/actors/${id}`, {method:"DELETE"}); toast("Equipo eliminado.", "info", 3500); showMaint(); }
+  catch (e) { toast(e.detail || "No se pudo", "danger"); }
 }
 
 async function applyFw() {
   const r = await api("/api/firewall/apply", {method:"POST"});
-  alert(r.applied ? "Regla aplicada." : "No se aplicó. Puedes ejecutar el comando a mano.");
+  toast(r.applied ? "Regla de firewall aplicada." : "No se aplicó. Puedes ejecutar el comando a mano.",
+        r.applied ? "ok" : "warn");
   showMaint();
 }
 
-// ── avisos ────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════
+   AVISOS DEL HUB
+   ══════════════════════════════════════════════════════════ */
 async function pollNotices() {
   try {
     const list = await api("/api/notices");
     if (list.length) {
-      const box = document.getElementById("notices");
-      list.forEach(n => {
-        const d = document.createElement("div");
-        d.className = "notice";
-        d.innerHTML = `<span>${esc(n.text)}</span><button onclick="this.parentNode.remove()">×</button>`;
-        box.appendChild(d);
-        setTimeout(() => d.remove(), 15000);
-      });
+      list.forEach(n => toast(n.text, "info", 15000));
       loadBridges();
     }
   } catch {}
