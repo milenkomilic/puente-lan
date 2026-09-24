@@ -21,7 +21,7 @@ Todo el estado del servicio cabe en una carpeta: copias `data/` y el hub se mud√
 ## Instalaci√≥n
 
 ```bash
-git clone https://github.com/milenkomilic/Bridge.git
+git clone https://github.com/milenkomilic/puente-lan.git
 cd Bridge
 
 python -m venv .venv
